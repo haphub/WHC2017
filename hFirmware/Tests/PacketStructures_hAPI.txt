@@ -1,0 +1,92 @@
+Firmware
+
+Communication Protocol 
+
+Setup
+
+
+Initialization package 
+
+hAPI -> uC 
+
+5 bytes int8 
+
+1 byte packet contents
+1 byte motor 1 indication J3
+1 byte motor 2 indication J2
+1 byte motor 3 indication J5
+1 byte motor 4 indication J4
+
+
+uC 
+
+Initialize the hardware on the uC
+
+uC -> hAPI 
+
+5 bytes int8
+
+1 byte packet success
+1 byte motor 1 activation state
+1 byte motor 2 activation state
+1 byte motor 3 activation state
+1 byte motor 4 activation state
+
+
+#ofMotors*2 +1 bytes signed representation 
+
+1st byte indicates the initialization state 
+4 bytes int32	encoder 1 offset
+4 bytes int32	encoder 1 resolution 
+4 bytes int32	encoder 2 offset
+4 bytes int32	encoder 2 resolution 
+...
+
+
+uC
+
+Set the hardware initial conditions
+
+uC -> hAPI 
+
+#ofMotors +1 
+
+1 byte packet success
+1 byte motor initialized
+1 byte motor initialized 
+..
+
+
+
+
+Loop 
+Parsing the input data structures sizeOf(#ofMotors*4+2)
+
+
+readAngles()
+writeTorques()
+
+
+#ofMotors*4+2
+
+1 byte package instructions (R/W)
+4 bytes payload1 
+4 bytes payload2
+... 
+
+
+
+
+
+ 
+
+
+
+ 
+
+
+
+
+
+
+
