@@ -1,7 +1,7 @@
 /**
  ************************************************************************************************
  * @file       Haply_Arduino_Control.ino
- * @author     Steve Ding, Colin Gallacher
+ * @author    
  * @version    V0.1.0
  * @date       27-February-2017
  * @brief      Haply board control for encoder read and torque write using on-board actuator

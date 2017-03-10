@@ -1,7 +1,7 @@
 /**
  ***********************************************************************************************
  * @file       Haply_Arduino_Control.h
- * @author     Steve Ding, Colin Gallacher
+ * @author     
  * @version    V0.1.0
  * @date       27-February-2017
  * @brief      constants and helper functions actuator control

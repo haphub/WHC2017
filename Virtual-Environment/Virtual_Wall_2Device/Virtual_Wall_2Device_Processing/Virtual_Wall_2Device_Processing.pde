@@ -43,13 +43,13 @@ void setup(){
   
   haply = new Board(Serial.list()[0], 0);
   
-  penta1 = new Device(degreesOfFreedom.TwoDOF, penta1ID, pentagraph_link);
+  penta1 = new Device(degreesOfFreedom.TwoDOF, penta1ID, haply);
   penta1.set_actuator_parameters(1, 180, 13824, 2);
   penta1.set_actuator_parameters(2, 0, 13824, 1);
   penta1.set_base_mechanism(l, L, d);
   penta1.device_set_parameters();
   
-  penta2 = new Device(degreesOfFreedom.TwoDOF, penta2ID, pentagraph_link);
+  penta2 = new Device(degreesOfFreedom.TwoDOF, penta2ID, haply);
   penta2.set_actuator_parameters(1, 180, 13824, 4);
   penta2.set_actuator_parameters(2, 0, 13824, 3);
   penta2.set_base_mechanism(l, L, d);
@@ -59,7 +59,7 @@ void setup(){
 
 void draw(){
   
-  if(pentagraph_link.data_available()){
+  if(haply.data_available()){
     
     if(receive_key == 0 && send_key == 0){
       penta1.device_read_angles();

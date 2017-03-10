@@ -1,7 +1,7 @@
 /**
  *******************************************************************************
  * @file       Pantagraph_Draw_Float_Arduino.h
- * @author     Steve Ding, Colin Gallacher
+ * @author     
  * @version    V0.0.1
  * @date       14-February-2017
  * @brief      constants and helper functions for Pantagraph application
