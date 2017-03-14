@@ -16,18 +16,19 @@ public class Device{
 
 	/* Communication object fields */
 	public 	DeviceType 		DOF;
-	public 	byte 			    deviceID;
+	public 	byte 			deviceID;
 	
-  public  Actuator[]    motors;	
+	public  Actuator[]    	motors;	
 
-	public 	Board 	      deviceLink;
-	public 	Mechanisms 		baseMechanism;
+	public 	Board 	      	deviceLink;
+	public 	Mechanisms 		mechanisms;
 	
-	public  byte[] 			  actuator_positions = {0, 0, 0, 0};
-	private byte 			    communicationType;
+	public  byte[] 			actuator_positions = {0, 0, 0, 0};
+	private byte 			communicationType;
+ 	private float[]   		params;
 	
 
- /**
+   /**
 	* @brief    base constructor for Communication object
 	* @param 	DOF: device degrees of freedom
 	* @param	deviceID: device ID
@@ -41,67 +42,75 @@ public class Device{
 		switch(DOF){
   
 			case OneDOF:
-        motors = new Actuator[1];
+				motors = new Actuator[1];
+				mechanisms = new HaplyOneDoFMech();
+				params = new float[1];
 				break;
 			case TwoDOF:
-        motors = new Actuator[2];
+				motors = new Actuator[2];
+				mechanisms = new HaplyTwoDoFMech();
+        		params = new float[2];
 				break;
 			case ThreeDOF:
-        motors = new Actuator[3];
+				motors = new Actuator[3];
+				mechanisms = new HaplyThreeDoFMech();
+				params = new float[3];
 				break;
 			case FourDOF:
-        motors = new Actuator[4];
+				motors = new Actuator[4];
+				mechanisms = new HaplyFourDoFMech();
+				params = new float[4];
 				break;
 			default:
 				System.err.println("Error: Undefined device type!");
 				break;
 		}
 
-    for(int i = 0; i < motors.length; i++){
-      motors[i] = new Actuator();
-    }
+		for(int i = 0; i < motors.length; i++){
+			motors[i] = new Actuator();
+		}
 	}
 	
    
  /* Device setup functions *********************************************************************/
    
- /**
+   /**
 	* @brief    set actuator parameters used by device
 	* @param 	actuator: sequential listing of actuator to be setup
 	* @param	offset: degrees offset associated with actuator
 	* @param 	resolution: actuator encoder resolution
 	* @param	position: actuator port position
 	*/
-	public void set_actuator_parameters(int actuator, float offset, float resolution, int position){
+	public void set_actuator_parameters(int actuator, float offset, float resolution, int port){
 		
-		if(position <=0 || position > 4){
+		if(port <=0 || port > 4){
 			System.err.println("error: actuator position index out of bounds!");
 		}
 		else{
 			switch(actuator){
   
 				case 1:
-					motors[0].encoder_offset = offset;
-					motors[0].encoder_resolution = resolution;
-					motors[0].actuator_position = position;
+					motors[0].set_offset(offset);
+					motors[0].set_resolution(resolution);
+					motors[0].set_port(port);
 					actuator_assignment(actuator, motors[0]);
 					break;
 				case 2:
-					motors[1].encoder_offset = offset;
-					motors[1].encoder_resolution = resolution;
-					motors[1].actuator_position = position;
+					motors[1].set_offset(offset);
+					motors[1].set_resolution(resolution);
+					motors[1].set_port(port);
 					actuator_assignment(actuator, motors[1]);
 					break;
 				case 3:
-					motors[2].encoder_offset = offset;
-					motors[2].encoder_resolution = resolution;
-					motors[2].actuator_position = position;
+					motors[2].set_offset(offset);
+					motors[2].set_resolution(resolution);
+					motors[2].set_port(port);
 					actuator_assignment(actuator, motors[2]);
 					break;
 				case 4:
-					motors[3].encoder_offset = offset;
-					motors[3].encoder_resolution = resolution;
-					motors[3].actuator_position = position;
+					motors[3].set_offset(offset);
+					motors[3].set_resolution(resolution);
+					motors[3].set_port(port);
 					actuator_assignment(actuator, motors[3]);
 					break;
 				default:
@@ -112,88 +121,75 @@ public class Device{
 	}
 	
 	
- /**
-	* @brief    update actuator torque value
-	* @param 	actuator: sequential listing of actuator to be setup
-	* @param	torque: torque value for update
-	*/
-	public void update_actuator_torque(int actuator, float torque){
-    
-		switch(actuator){
-			case 1:
-				motors[0].torque = torque;
-				break;
-			case 2:
-				motors[1].torque = torque;
-				break;
-			case 3:
-				motors[2].torque = torque;
-				break;
-			case 4:
-				motors[3].torque = torque;
-				break;
-			default:
-				System.err.println("error: actuator index out of bound!");
-				break;
-		}
+	public void set_new_mechanism(Mechanisms mechanisms){
+		this.mechanisms = mechanisms;
 	}
 	
 	
- /**
-	* @brief    setup base mechanism for 1DOF device
-	* @param 	l: arm length
-	*/
-	public void set_base_mechanism(int l){
-		baseMechanism = new Mechanisms(l);
-	}
-	
-	
- /**
-	* @brief    setup base mechanism for 2DOF device
-	* @param 	l: arm1 length
-	* @param	L: arm2 length
-	* @param	d: motor distance
-	*/
-	public void set_base_mechanism(int l, int L, int d){
-		baseMechanism = new Mechanisms(l, L, d);
-	}
-	
-	
- /**
+   /**
 	* @brief    base mechanism forward kinematics calculations
 	* @note		function incomplete, only has equations for 2DOF device !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	*/
-	public void base_forwardKinematics(){
+ 	public void base_forwardKinematics(){
+		
 		switch(DOF){
+      		case OneDOF:
+        		break;
+        
 			case TwoDOF:
-				baseMechanism.forwardKinematics(motors[0].angle, motors[1].angle);
+				params[0] = motors[0].get_angle(); 
+        		params[1] = motors[1].get_angle();
+				mechanisms.forwardKinematics(params);
 				break;
+
+      		case ThreeDOF:
+        		break;
+        
+      		case FourDOF:
+        		break;
 		}
 	}
+	 
+	 
 	
-	
- /**
+   /**
 	* @brief    base mechanism torque calculations
 	* @note		function incomplete, only has equations for 2DOF device !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	* @param	fx: end effector x location
 	* @param	fy: end effector y location
 	* @param	divisor: divisor constant to keep force calculations in check 
 	*/
-	public void base_TorqueCalculations(float fx, float fy, int divisor){
+ 	public void base_TorqueCalculations(float fx, float fy){
+		
+		//float[] torques;
+		
 		switch(DOF){
+      		case OneDOF:
+        		break;
+        
 			case TwoDOF:
-				baseMechanism.torqueCalculation(fx, fy, divisor);
-				motors[0].torque = baseMechanism.tau1;
-				motors[1].torque = baseMechanism.tau2;
+				params[0] = fx;
+        		params[1] = fy;
+				mechanisms.torqueCalculation(params);
+
+				params = mechanisms.get_torque();
+				motors[0].set_torque(params[0]);
+				motors[1].set_torque(params[1]);
 				break;
+      
+      		case ThreeDOF:
+        		break;
+      
+      		case FourDOF:
+        		break;
 		}
-	}
+	}  
 	
 	
 	
  /* Device communication and control functions *************************************************/
 	
- /**
+   /**
 	* @brief    sends setup information over serial
 	*/	
 	public void device_set_parameters(){
@@ -203,23 +199,21 @@ public class Device{
     
     
 		int j = 0;
-    for(int i = 0; i < actuator_positions.length; i++){
+		for(int i = 0; i < actuator_positions.length; i++){
       
-      if(actuator_positions[i] > 0){
-        parameter_data[2*j] = motors[actuator_positions[i]-1].encoder_offset;
-        parameter_data[2*j+1] = motors[actuator_positions[i]-1].encoder_resolution;
-        j++;
-      }
-    }
+			if(actuator_positions[i] > 0){
+				parameter_data[2*j] = motors[actuator_positions[i]-1].get_offset();
+				parameter_data[2*j+1] = motors[actuator_positions[i]-1].get_resolution();
+				j++;
+			}
+		}
 
     
-    deviceLink.send_data(communicationType, deviceID, actuator_positions, parameter_data);
-			
-		
+		deviceLink.send_data(communicationType, deviceID, actuator_positions, parameter_data);	
 	}
 	
 	
- /**
+   /**
 	* @brief    response over serial for verification
 	*/
 	public void device_set_verification(){
@@ -232,7 +226,7 @@ public class Device{
 	}
 	
 	
- /**
+   /**
 	* @brief    request for encoder data
 	*/
 	public void device_read_request(){
@@ -240,20 +234,20 @@ public class Device{
 		
 		float[] encoder_request = new float[motors.length];
 
-    int j = 0;
-    for(int i = 0; i < actuator_positions.length; i++){
+    	int j = 0;
+    	for(int i = 0; i < actuator_positions.length; i++){
       
-      if(actuator_positions[i] > 0){
-        encoder_request[j] = 0;
-        j++;
-      }
-    }
+      		if(actuator_positions[i] > 0){
+        		encoder_request[j] = 0;
+        		j++;
+      		}
+    	}
 		
-    deviceLink.send_data(communicationType, deviceID, actuator_positions, encoder_request);
+    	deviceLink.send_data(communicationType, deviceID, actuator_positions, encoder_request);
 	}
 	
 	
- /**
+   /**
 	* @brief    write actuator torques to device
 	*/
 	public void device_write_torques(){
@@ -262,19 +256,19 @@ public class Device{
     
 		float[] device_torques = new float[motors.length];
 		
-    int j = 0;
-    for(int i = 0; i < actuator_positions.length; i++){
-      if(actuator_positions[i] > 0){
-        device_torques[j] = motors[actuator_positions[i]-1].torque;
-        j++;
-      }
-    }
+    	int j = 0;
+    	for(int i = 0; i < actuator_positions.length; i++){
+      		if(actuator_positions[i] > 0){
+        		device_torques[j] = motors[actuator_positions[i]-1].get_torque();
+        		j++;
+      		}
+    	}
 
-    deviceLink.send_data(communicationType, deviceID, actuator_positions, device_torques);		
+    	deviceLink.send_data(communicationType, deviceID, actuator_positions, device_torques);		
 	}
 	
 	
- /**
+   /**
 	* @brief    receive encoder angles from device
 	*/
 	public void device_read_angles(){
@@ -283,24 +277,24 @@ public class Device{
     
 		float[] angle_data = deviceLink.receive_data(communicationType, deviceID, actuator_positions);
 		
-    int j = 0;
-    for(int i = 0; i < actuator_positions.length; i++){
-      if(actuator_positions[i] > 0){
-        motors[actuator_positions[i]-1].angle = angle_data[j];
-        j++;
-      }
-    }
+    	int j = 0;
+    	for(int i = 0; i < actuator_positions.length; i++){
+      		if(actuator_positions[i] > 0){
+        		motors[actuator_positions[i]-1].set_angle(angle_data[j]);
+        		j++;
+      		}
+    	}
 	}
 	
 	
  /* Device object helper functions *************************************************************/
    
- /**
+   /**
 	* @brief    assigns actuator positions based on actuator port
 	*/
 	private void actuator_assignment(int actuator, Actuator m){
 		
-		switch(m.actuator_position){
+		switch(m.get_port()){
 			case 1:
 				this.actuator_positions[0] = (byte)actuator;
 				break; 
@@ -314,7 +308,7 @@ public class Device{
 				this.actuator_positions[3] = (byte)actuator;
 				break;
 			default:
-        System.err.println("Error, actuator position out of bound");
+				System.err.println("Error, actuator position out of bound");
 				break;
 		}
 		
