@@ -20,7 +20,7 @@ import processing.serial.*;
 Device 			  pentagraph;
 byte 			    deviceID = 5;
 Board 	      haply;
-DeviceType 		degreesOfFreedom;
+DeviceType 		DOFs;
 
 /* Graphics object primitives definitions ************************************/
 int 			    l                 = 2*50;
@@ -49,13 +49,14 @@ void setup(){
 	background(255);
 	frameRate(baseFrameRate);
 	createKite();
+ 
   
 	haply = new Board(Serial.list()[0], 0);
-	pentagraph = new Device(degreesOfFreedom.TwoDOF, deviceID, haply);
+	pentagraph = new Device(DOFs.TwoDOF, deviceID, haply);
   
   	pentagraph.set_actuator_parameters(1, 180, 13824, 2);
         pentagraph.set_actuator_parameters(2, 0, 13824, 1);	
-	pentagraph.set_base_mechanism(l, L, d);
+	pentagraph.set_mechanism_parameters(l, L, d);
   	pentagraph.device_set_parameters();
  
 }
@@ -93,6 +94,12 @@ void draw(){
   //  println(frameCount / (millis()/1000f));
   //}
 }
+
+void stop() {
+  
+  Serial.stop(); 
+} 
+
 
 
 /* Graphical and physics functions -----------------------------------------------------*/
