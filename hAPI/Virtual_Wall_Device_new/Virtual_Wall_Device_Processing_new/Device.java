@@ -17,13 +17,14 @@ public class Device{
 	/* Communication object fields */
 	public 	DeviceType 		DOF;
 	public 	byte 			deviceID;
+	public 	Board 	      	deviceLink;
 	
 	public  Actuator[]    	motors;	
-
-	public 	Board 	      	deviceLink;
+	public Sensor[]         encoders; 	
 	public 	Mechanisms 		mechanisms;
 	
 	public  byte[] 			actuator_positions = {0, 0, 0, 0};
+	public byte[]			encoder_positions = {0, 0, 0, 0}; 
 	private byte 			communicationType;
  	private float[]   		params;
 	
@@ -34,7 +35,7 @@ public class Device{
 	* @param	deviceID: device ID
 	* @param	deviceLink: serial link used by device
 	*/
-	public Device(DeviceType DOF, byte deviceID, Board deviceLink){
+	public Device(DeviceType DOF, byte[] ports, byte deviceID, Board deviceLink){
 		this.DOF = DOF;
 		this.deviceID = deviceID;
 		this.deviceLink = deviceLink;
@@ -43,78 +44,94 @@ public class Device{
   
 			case OneDOF:
 				motors = new Actuator[1];
+				encoder = new Sensor[1]; 
 				
-					/* search for first available actuator*/ 
-					byte[] port_status = deviceLink.get_port_status(); 
+				if(ports.length()>(this.DOF+1)){
+					 System.err.println("Error: The number of ports used by this device does not match the type of device. ")
+				}
+				else{
+				for(int i=0; i< motors.length(); i++){
 					
-					int j=0; 
-					int i=0; 
-						while( i < motors.length()){
-						motors[i]=new Actuator(); 
-						
-						if(port_status[j] == 0) 
-						{
-							this.set_actuator_parameters(i+1, 180*i, 13824, j+1);
-							i++
-						}
-						else {
-							j++; 
-		 
-						}
-				
-				        if (j >3 ) System.err.println("All the motor ports have been assigned to actuators.")
-			
-					}
-
+					this.motors[i] = new Actuator(); 
+					this.encoders[i] = new Sensor(); 
+					this.set_actuator_parameters(i, this.port[i]);
+					this.set_encoder_parameters(i, 180*i, 13824, this.port[i]);
+					
+				}
+				}
+					
 				this.device_set_parameters();
 				mechanisms = new HaplyOneDoFMech();
 				params = new float[1];
 				break;
+			
 			case TwoDOF:
 				motors = new Actuator[2];
+				encoder= new Sensor[2]; 
 				
-							/* search for first available actuator*/ 
-					byte[] port_status = deviceLink.get_port_status(); 
+				if(ports.length()>(this.DOF+1)){
+					 System.err.println("Error: The number of ports used by this device does not match the type of device. ")
+				}
+				else{
+				for(int i=0; i< motors.length(); i++){
 					
-					int j=0; 
-					int i=0; 
-						while( i < motors.length()){
-						motors[i]=new Actuator(); 
-						
-						if(port_status[j] == 0) 
-						{
-							this.set_actuator_parameters(i+1, 180*i, 13824, j+1);
-							i++
-						}
-						else {
-							j++; 
-		 
-						}
-				
-				        if (j >3 ) System.err.println("All the motor ports have been assigned to actuators.")
-			
-					}
+					this.motors[i] = new Actuator(); 
+					this.encoders[i] = new Sensor();
+					this.set_actuator_parameters(i, this.port[i]);
+					this.set_encoder_parameters(i, 180*i, 13824, this.port[i]);
+				}
+				}
+					
 				
 				this.device_set_parameters();
 				mechanisms = new HaplyTwoDoFMech();
         		params = new float[2];
 				break;
+				
 			case ThreeDOF:
 				motors = new Actuator[3];
-					for(int i = 0; i < motors.length; i++){
-						motors[i] = new Actuator();
-					}	
+				encoder= new Sensor[3]; 
+				
+				if(ports.length()>(this.DOF+1)){
+					 System.err.println("Error: The number of ports used by this device does not match the type of device. ")
+				}
+				else{
+				for(int i=0; i< motors.length(); i++){
+					
+					this.motors[i] = new Actuator(); 
+					this.encoders[i] = new Sensor();
+					this.set_actuator_parameters(i, this.port[i]);
+					this.set_encoder_parameters(i, 180*i, 13824, this.port[i]);
+				}
+				}
+				
+				this.device_set_parameters();
 				mechanisms = new HaplyThreeDoFMech();
 				params = new float[3];
 				break;
+				
 			case FourDOF:
 				motors = new Actuator[4];
-					for(int i = 0; i < motors.length; i++){
-						motors[i] = new Actuator();
-					}	
+				encoder= new Sensor[4]; 
+				
+				if(ports.length()>(this.DOF+1)){
+					 System.err.println("Error: The number of ports used by this device does not match the type of device. ")
+				}
+				else{
+				for(int i=0; i< motors.length(); i++){
+					
+					this.motors[i] = new Actuator(); 
+					this.encoders[i] = new Sensor();
+					this.set_actuator_parameters(i, this.port[i]);
+					this.set_encoder_parameters(i, 180*i, 13824, this.port[i]);
+				}
+				}
+				
+				this.device_set_parameters()
 				mechanisms = new HaplyFourDoFMech();
 				params = new float[4];
 				break;
+				
 			default:
 				System.err.println("Error: Undefined device type!");
 				break;
@@ -127,13 +144,57 @@ public class Device{
  /* Device setup functions *********************************************************************/
    
    /**
+	* @brief    set encoder parameters used by device
+	* @param 	encoder: sequential listing of encoder to be setup
+	* @param	offset: degrees offset associated with encoder
+	* @param 	resolution: encoder encoder resolution
+	* @param	position: encoder port position
+	*/
+	public void set_encoder_parameters(int sensor, float offset, float resolution, int port){
+		
+		if(port <=0 || port > 4){
+			System.err.println("error: encoder position index out of bounds!");
+		}
+		else{
+			switch(encoder){
+  
+				case 1:
+					encoder[0].set_offset(offset);
+					encoder[0].set_resolution(resolution);
+					encoder[0].set_port(port);
+					encoder_assignment(sensor, encoder[0]);
+					break;
+				case 2:
+					encoder[1].set_offset(offset);
+					encoder[1].set_resolution(resolution);
+					encoder[1].set_port(port);
+					encoder_assignment(sensor, encoder[1]);
+					break;
+				case 3:
+					encoder[2].set_offset(offset);
+					encoder[2].set_resolution(resolution);
+					encoder[2].set_port(port);
+					encoder_assignment(sensor, encoder[2]);
+					break;
+				case 4:
+					encoder[3].set_offset(offset);
+					encoder[3].set_resolution(resolution);
+					encoder[3].set_port(port);
+					encoder_assignment(sensor, encoder[3]);
+					break;
+				default:
+					System.err.println("error: encoder index out of bound! refer to limit of constructed device");
+					break;
+			}
+		}
+	}
+	
+	   /**
 	* @brief    set actuator parameters used by device
 	* @param 	actuator: sequential listing of actuator to be setup
-	* @param	offset: degrees offset associated with actuator
-	* @param 	resolution: actuator encoder resolution
 	* @param	position: actuator port position
 	*/
-	public void set_actuator_parameters(int actuator, float offset, float resolution, int port){
+	public void set_actuator_parameters(int actuator, int port){
 		
 		if(port <=0 || port > 4){
 			System.err.println("error: actuator position index out of bounds!");
@@ -142,36 +203,27 @@ public class Device{
 			switch(actuator){
   
 				case 1:
-					motors[0].set_offset(offset);
-					motors[0].set_resolution(resolution);
 					motors[0].set_port(port);
-					actuator_assignment(actuator, motors[0]);
+					encoder_assignment(actuator, motors[0]);
 					break;
 				case 2:
-					motors[1].set_offset(offset);
-					motors[1].set_resolution(resolution);
 					motors[1].set_port(port);
-					actuator_assignment(actuator, motors[1]);
+					encoder_assignment(actuator, motors[1]);
 					break;
-				case 3:
-					motors[2].set_offset(offset);
-					motors[2].set_resolution(resolution);
+				case 3:			
 					motors[2].set_port(port);
-					actuator_assignment(actuator, motors[2]);
+					encoder_assignment(actuator, motors[2]);
 					break;
 				case 4:
-					motors[3].set_offset(offset);
-					motors[3].set_resolution(resolution);
 					motors[3].set_port(port);
-					actuator_assignment(actuator, motors[3]);
+					encoder_assignment(actuator, motors[3]);
 					break;
 				default:
-					System.err.println("error: actuator index out of bound! refer to limit of constructed device");
+					System.err.println("error: encoder index out of bound! refer to limit of constructed device");
 					break;
 			}
 		}
 	}
-	
 	
 	public void set_new_mechanism(Mechanisms mechanisms){
 		this.mechanisms = mechanisms;
@@ -189,8 +241,8 @@ public class Device{
         		break;
         
 			case TwoDOF:
-				params[0] = motors[0].get_angle(); 
-        		params[1] = motors[1].get_angle();
+				params[0] = encoders[0].get_angle(); 
+        		params[1] = encoders[1].get_angle();
 				mechanisms.forwardKinematics(params);
 				break;
 
@@ -247,21 +299,21 @@ public class Device{
 	public void device_set_parameters(){
   
 		communicationType = 0;
-		float[] parameter_data = new float[2*motors.length];
+		float[] parameter_data = new float[2*encoders.length];
     
     
 		int j = 0;
-		for(int i = 0; i < actuator_positions.length; i++){
+		for(int i = 0; i < encoder_positions.length; i++){
       
-			if(actuator_positions[i] > 0){
-				parameter_data[2*j] = motors[actuator_positions[i]-1].get_offset();
-				parameter_data[2*j+1] = motors[actuator_positions[i]-1].get_resolution();
+			if(encoder_positions[i] > 0){
+				parameter_data[2*j] = encoders[encoder_positions[i]-1].get_offset();
+				parameter_data[2*j+1] = encoders[encoder_positions[i]-1].get_resolution();
 				j++;
 			}
 		}
 
     
-		deviceLink.send_data(communicationType, deviceID, actuator_positions, parameter_data);	
+		deviceLink.send_data(communicationType, deviceID, encoder_positions, parameter_data);	
 	}
 	
 	
@@ -273,7 +325,7 @@ public class Device{
 		communicationType = 0;
     
 		if(deviceLink.data_available()){
-			float[] recieve = deviceLink.receive_data(communicationType, deviceID, actuator_positions);
+			float[] recieve = deviceLink.receive_data(communicationType, deviceID, encoder_positions);
 		}
 	}
 	
@@ -284,23 +336,23 @@ public class Device{
 	public void device_read_request(){
     communicationType = 1;
 		
-		float[] encoder_request = new float[motors.length];
+		float[] encoder_request = new float[encoders.length];
 
     	int j = 0;
-    	for(int i = 0; i < actuator_positions.length; i++){
+    	for(int i = 0; i < encoder_positions.length; i++){
       
-      		if(actuator_positions[i] > 0){
+      		if(encoder_positions[i] > 0){
         		encoder_request[j] = 0;
         		j++;
       		}
     	}
 		
-    	deviceLink.send_data(communicationType, deviceID, actuator_positions, encoder_request);
+    	deviceLink.send_data(communicationType, deviceID, encoder_positions, encoder_request);
 	}
 	
 	
    /**
-	* @brief    write actuator torques to device
+	* @brief    write encoder torques to device
 	*/
 	public void device_write_torques(){
 		
@@ -327,12 +379,12 @@ public class Device{
 		
     communicationType = 1;
     
-		float[] angle_data = deviceLink.receive_data(communicationType, deviceID, actuator_positions);
+		float[] angle_data = deviceLink.receive_data(communicationType, deviceID, encoder_positions);
 		
     	int j = 0;
-    	for(int i = 0; i < actuator_positions.length; i++){
-      		if(actuator_positions[i] > 0){
-        		motors[actuator_positions[i]-1].set_angle(angle_data[j]);
+    	for(int i = 0; i < encoder_positions.length; i++){
+      		if(encoder_positions[i] > 0){
+        		encoders[encoder_positions[i]-1].set_angle(angle_data[j]);
         		j++;
       		}
     	}
@@ -365,4 +417,32 @@ public class Device{
 		}
 		
 	}
+	
+	 /* Device object helper functions *************************************************************/
+   
+   /**
+	* @brief    assigns encdoer positions based on encoder port
+	*/
+	private void sensor_assignment(int encoder, Sensor m){
+		
+		switch(m.get_port()){
+			case 1:
+				this.encoder_positions[0] = (byte)encoder;
+				break; 
+			case 2:
+				this.encoder_positions[1] = (byte)encoder;
+				break;
+			case 3:
+				this.encoder_positions[2] = (byte)encoder;
+				break;
+			case 4:
+				this.encoder_positions[3] = (byte)encoder;
+				break;
+			default:
+				System.err.println("Error, encoder position out of bound");
+				break;
+		}
+		
+	}
+	
 }

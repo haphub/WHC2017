@@ -19,8 +19,11 @@ import processing.serial.*;
 /* Device block definitions ************************************/
 Device        pentagraph;
 byte          deviceID = 5;
-Board         pentagraph_link;
+Board         haply;
 DeviceType    degreesOfFreedom;
+byte[]        ports = {1,2}; 
+
+
 
 /* Graphics object primitives definitions ************************************/
 int           l        = 2*50;
@@ -54,8 +57,9 @@ void setup(){
   frameRate(baseFrameRate);
   createKite();
   
-  pentagraph_link = new Board(Serial.list()[0], 0);
-  pentagraph = new Device(degreesOfFreedom.TwoDOF, deviceID, pentagraph_link);
+  
+  haply = new Board(Serial.list()[0], 0);
+  pentagraph = new Device(degreesOfFreedom.TwoDOF, ports, deviceID, haply);
   
 }
 
@@ -65,7 +69,7 @@ void setup(){
  */
 void draw(){
   
-  if(pentagraph_link.data_available()){
+  if(haply.data_available()){
 
     pentagraph.device_read_angles();
     
@@ -95,6 +99,9 @@ void draw(){
   //  	println(frameCount / (millis()/1000f));
   //}
 }
+
+
+
 
 
 /* Graphical and physics functions -----------------------------------------------------*/

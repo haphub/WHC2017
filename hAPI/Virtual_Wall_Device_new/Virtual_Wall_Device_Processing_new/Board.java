@@ -24,6 +24,7 @@ public class Board{
 	
 	private byte 	deviceID;
 	private int 	number_of_parameters = 0;
+	private byte[]  encoder_positions   = {0, 0, 0, 0};
 	private byte[]  actuator_positions   = {0, 0, 0, 0};
 	
 	
@@ -138,7 +139,7 @@ public class Board{
    /**
 	* @brief    determines how much data is incoming and sets buffer lengths accordingly
 	* @param 	type: communication type
-	* @param	positions: actuator positions of sending device
+	* @param	positions: port positions of sending device
 	* @return   number of active motors
 	*/
 	private int set_buffer_length(byte type, byte[] positions){
@@ -153,7 +154,7 @@ public class Board{
 		
 		switch(type){
 			case 0: // setup command
-				port_check(positions);
+				port_check(encoder_positions, positions);
 				set_buffer(5);	
 				m_active = 1;
 				break;	
@@ -167,27 +168,18 @@ public class Board{
 	
 	
    /**
-	* @brief    determines if actuator ports are in use and prints warnings accordingly
-	* @param	positions: actuator positions of sending device
+	* @brief    determines if the desired ports are in use and prints warnings accordingly
+	* @param	desired_positions: port positions of sending device
 	*/
-	private void port_check(byte[] positions){
+	private void port_check(byte[] set_positions byte[] desired_positions){
 		
 		for( int i = 0; i < 4; i++){
-			if(actuator_positions[i] > 0 && positions[i] > 0){
+			if(set_positions[i] > 0 && desired_positions[i] > 0){
 				System.err.println("Warning, hardware actuator " + i + " was in use and will be overridden");
 			}
 			
-			actuator_positions[i] = positions[i];
+			set_positions[i] = desired_positions[i];
 		}
-	}
-	
-	   /**
-	* @brief    returns the list of used ports
-	* @param	void
-	*/
-	public byte[] get_port_status(){
-		
-		return actuator_positions; 
 	}
 	
 	
