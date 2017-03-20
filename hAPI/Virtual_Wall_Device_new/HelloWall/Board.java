@@ -1,7 +1,7 @@
 /**
  ***********************************************************************************************
  * @file       Board.java
- * @author     
+ * @author    
  * @version    V0.1.0
  * @date       01-March-2017
  * @brief      Board class definition
@@ -27,7 +27,7 @@ public class Board{
 	private byte[]  actuator_positions   = {0, 0, 0, 0};
 	
 	
- /**
+   /**
 	* @brief    base constructor for Board object
 	* @param 	portName: serial port name for connection
 	* @param	speed: serial data speed
@@ -41,7 +41,7 @@ public class Board{
    
  /* Data transmission functions ****************************************************************/
 	
- /**
+   /**
 	* @brief    send data over serial port
 	* @param 	type: communication type
 	* @param	deviceID: ID of device sending data
@@ -70,7 +70,7 @@ public class Board{
 	}
 	
 	
- /**
+   /**
 	* @brief    receive data over serial port
 	* @param 	type: communication type
 	* @param	deviceID: ID of device sending data
@@ -108,7 +108,7 @@ public class Board{
 	
  /* Serial connection status functions *********************************************************/
    
- /**
+   /**
 	* @brief    checks to see if data is available
 	* @return   if data is available
 	*/
@@ -126,7 +126,7 @@ public class Board{
    
  /* Data formatting and status checking functions **********************************************/
    
- /**
+   /**
 	* @brief    set serial buffer length for incoming data
 	* @param 	length: number of bytes expected in read buffer
 	*/
@@ -135,7 +135,7 @@ public class Board{
 	}
 	
 	
- /**
+   /**
 	* @brief    determines how much data is incoming and sets buffer lengths accordingly
 	* @param 	type: communication type
 	* @param	positions: actuator positions of sending device
@@ -166,7 +166,7 @@ public class Board{
 	}
 	
 	
- /**
+   /**
 	* @brief    determines if actuator ports are in use and prints warnings accordingly
 	* @param	positions: actuator positions of sending device
 	*/
@@ -182,7 +182,7 @@ public class Board{
 	}
 	
 	
- /**
+   /**
 	* @brief    formats header byte for transmission over serial
 	* @param 	type: communication type
 	* @param	positions: actuator positions of sending device
@@ -207,7 +207,7 @@ public class Board{
 	}
 	
 	
- /**
+   /**
 	* @brief    translates a float point number to its raw binary across four bytes
 	* @param 	val: floating point number
 	* @return   array of 4 bytes containing raw binary of floating point number
@@ -227,7 +227,7 @@ public class Board{
   
 	}
 
- /**
+   /**
 	* @brief    translates a binary of a float point to actual float point
 	* @param 	segment: array containing raw binary of floating point
 	* @return   translated floating point number

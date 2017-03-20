@@ -15,28 +15,41 @@
 public class Actuator{
 	
 	/* Actuator object fields */
-	public float encoder_offset		 = 0;
-	public float encoder_resolution  = 0;
-	public float angle 				 = 0;
-	public float torque 			 = 0;
-	public int 	 actuator_port	 = 0;
+	private float torque 			  = 0;
+	private int   actuator_port	 	  = 0;
 	
- /**
+   /**
 	* @brief    base constructor for Actuator object, only sets up ports
 	*/
 	public Actuator(){
-		this(0, 0, 1);
+		this(1);
 	}
 	
- /**
+   /**
 	* @brief    base constructor for Actuator object
 	* @param 	offset: Actuator encoder offset in degrees
 	* @param	resolution: Actuator encoder resolution
 	* @param	port: physical actuator port location on board
 	*/
-	public Actuator(float offset, float resolution, int port){
-		this.encoder_offset = offset;
-		this.encoder_resolution = resolution;
+	public Actuator(int port){
 		this.actuator_port = port;
 	}
+	
+	
+	public void set_port(int port){
+		actuator_port = port;
+	}
+	
+	public void set_torque(float torque){
+		this.torque = torque;
+	}
+	
+	public int get_port(){
+		return actuator_port;
+	}
+	
+	public float get_torque(){
+		return torque;
+	}
+	
 }
