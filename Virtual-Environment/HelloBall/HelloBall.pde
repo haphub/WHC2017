@@ -24,13 +24,13 @@ DeviceType      degreesOfFreedom;
 //Mechanisms      NewMech = new NewExampleMech();
 
 /* Graphics Parameters ************************************/
-int             baseFrameRate     = 500;
-int             animation_count   = baseFrameRate/50;
-int             haptics_count     = baseFrameRate/500;
-
+int             baseFrameRate     = 1000;
+long             animation_count   = 0; 
+long             haptics_count     = 0; 
+long			 count             = 0; 
 
 PShape          pantograph, joint1, joint2, handle;
-PShape          ball; 
+PShape          ball, left_wall, bottom_wall, right_wall; 
 
 
 int             l                 = 2*50;
@@ -114,6 +114,7 @@ void setup(){
  * @brief    Main draw function, updates frame at perscribed frame rate
  */
 void draw(){
+  count = millis(); 
   scale(1,-1);
   translate(0,-height); 
  
@@ -192,13 +193,13 @@ void draw(){
     
 
 // INTEGRATE THE ACCELERATION TO GET THE STATES OF THE BALL
-long currentTimer = millis(); 
+long currentTimer = count; 
 float dt = (float)(currentTimer - oldTimer); 
 //println(dt); 
 //dt = dt/1000; 
 //dt = (dt < 0.001 )? 0.002 : dt; 
 //println(dt);
-dt=.002; 
+dt=.001; 
 //println(dt);
 pos_ball = (((f_ball.copy()).div(2*m_ball)).mult(dt*dt)).add(((vel_ball.copy()).mult(dt))).add(pos_ball);
 vel_ball = (((f_ball.copy()).div(m_ball)).mult(dt)).add(vel_ball); 
@@ -208,7 +209,7 @@ oldTimer = currentTimer;
 }
 
 	/******* ANIMATION TIMER ********/ 
-  if(frameCount % animation_count == 0){
+  if((count-animation_count) > 16){
     angles.set(haply_2DoF.mechanisms.get_angle());
     pos_ee.set(haply_2DoF.mechanisms.get_coordinate());
     update_animation(angles.x, angles.y, pos_ee.x, pos_ee.y);
@@ -216,7 +217,7 @@ oldTimer = currentTimer;
 	
   /********** HAPTICS TIMER *************/ 
 	
-  if(frameCount % haptics_count == 0){
+  if((count - haptics_count) > 1){
     haply_2DoF.device_write_torques();
   }
   
@@ -236,8 +237,8 @@ void createpantograph(){
 
 	pantograph = createShape();
 	pantograph.beginShape();
-	pantograph.fill(255);
-	pantograph.stroke(0);
+	pantograph.fill(0);
+	pantograph.stroke(255);
 	pantograph.strokeWeight(2);
   
   
@@ -249,39 +250,45 @@ void createpantograph(){
 	pantograph.endShape(CLOSE);
   
 	joint1 = createShape(ELLIPSE, device_origin.x, device_origin.y, d/5, d/5);
-	joint1.setStroke(color(0));
+	joint1.setStroke(color(255));
   
 	joint2 = createShape(ELLIPSE, device_origin.x+d, device_origin.y, d/5, d/5);
-	joint2.setStroke(color(0));
+	joint2.setStroke(color(255));
 
-
+	handle = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ee, 2*r_ee);
+	handle.setStroke(color(255));
+	
+	left_wall = createShape(LINE, device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_left.x, device_origin.y+300);
+	left_wall.setStroke(color(255));
+	
+	right_wall = createShape(LINE, device_origin.x+pos_wall_right.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x, device_origin.y+300);
+	right_wall.setStroke(color(255));
+	
+	bottom_wall = createShape(LINE, device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x,device_origin.y+pos_wall_bottom.y);
+	bottom_wall.setStroke(color(255));
+	
+	ball = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ball, 2*r_ball);
+	ball.setStroke(color(255));
 }
 
 void update_animation(float th1, float th2, float x_E, float y_E){
+    background(0); // To clean up the left-overs of drawings from the previous loop!
+
   
 	pantograph.setVertex(1,device_origin.x+l*cos(th1), device_origin.y+l*sin(th1)); // Vertex A with th1 from encoder reading
 	pantograph.setVertex(3,device_origin.x+d+l*cos(th2), device_origin.y+l*sin(th2)); // Vertex B with th2 from encoder reading
 	pantograph.setVertex(2,device_origin.x+x_E, device_origin.y+y_E); // Vertex E from Fwd Kin calculations  
-	background(255); // To clean up the left-overs of drawings from the previous loop!
   
 	shape(pantograph); // Display the pantograph
 	shape(joint1);
 	shape(joint2); 
-  
-  line(device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_left.x, device_origin.y+300);
-  line(device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x,device_origin.y+pos_wall_bottom.y);
-  line(device_origin.x+pos_wall_right.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x, device_origin.y+300);
-
-  
-  handle = createShape(ELLIPSE, device_origin.x+x_E, device_origin.y+y_E, 2*r_ee, 2*r_ee);
-  handle.setStroke(color(0));
-  shape(handle); 
-  
-  ball = createShape(ELLIPSE, device_origin.x+pos_ball.x, device_origin.y+pos_ball.y, 2*r_ball, 2*r_ball);
-  ball.setStroke(color(0));
-  shape(ball); 
-  
-	stroke(0);
+	shape(left_wall);
+	shape(right_wall);
+	shape(bottom_wall);
+	shape(handle,x_E, y_E); 
+	  stroke(255); 
+	shape(ball, pos_ball.x, pos_ball.y); 
+	stroke(255);
   
 
 }
