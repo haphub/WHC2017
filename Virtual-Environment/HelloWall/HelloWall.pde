@@ -24,12 +24,12 @@ DeviceType      degreesOfFreedom;
 //Mechanisms      NewMech = new NewExampleMech();
 
 /* Graphics Parameters ************************************/
-int             baseFrameRate     = 1000;
-int             animation_count   = baseFrameRate/50;
-int             haptics_count     = baseFrameRate/1000;
+long             baseFrameRate     = 1000;
+long             animation_count   = 0;
+long             haptics_count     = 0;
 
 
-PShape          pantograph, joint1, joint2, handle;
+PShape          pantograph, joint1, joint2, handle, line1;
 
 int             l                 = 2*50;
 int             L                 = 2*70;
@@ -89,6 +89,7 @@ void setup(){
 void draw(){
   scale(1,-1);
   translate(0,-height); 
+  
  
   if(haply_board.data_available()){
 
@@ -120,20 +121,23 @@ void draw(){
     haply_2DoF.motors[1].set_torque(torques.y);
 
   /******* ANIMATION TIMER ********/ 
-  if(frameCount % animation_count == 0){
+  if((frameCount - animation_count) > 8){
     angles.set(haply_2DoF.mechanisms.get_angle());
     pos_ee.set(haply_2DoF.mechanisms.get_coordinate());
     update_animation(angles.x, angles.y, pos_ee.x, pos_ee.y);
+    animation_count = frameCount; 
   }
   
   /********** HAPTICS TIMER *************/ 
   
-  if(frameCount % haptics_count == 0){
+  if((frameCount - haptics_count) > 1){
     haply_2DoF.device_write_torques();
+    haptics_count=frameCount; 
   }
   
+
   
-  
+
 }
 
 
@@ -150,8 +154,8 @@ void createpantograph(){
 
   pantograph = createShape();
   pantograph.beginShape();
-  pantograph.fill(255);
-  pantograph.stroke(0);
+  pantograph.fill(0);
+  pantograph.stroke(255);
   pantograph.strokeWeight(2);
   
   
@@ -163,37 +167,37 @@ void createpantograph(){
   pantograph.endShape(CLOSE);
   
   joint1 = createShape(ELLIPSE, device_origin.x, device_origin.y, d/5, d/5);
-  joint1.setStroke(color(0));
+  joint1.setStroke(color(255));
   
   joint2 = createShape(ELLIPSE, device_origin.x+d, device_origin.y, d/5, d/5);
-  joint2.setStroke(color(0));
+  joint2.setStroke(color(255));
 
+  handle = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ee, 2*r_ee);
+  handle.setStroke(color(255));
+  
+  
+  line1 = createShape(LINE, device_origin.x-200, device_origin.y+pos_wall.y, device_origin.x+200,device_origin.y+pos_wall.y);
+  line1.setStroke(color(255));
 
 }
 
 void update_animation(float th1, float th2, float x_E, float y_E){
-  
+      background(0); // To clean up the left-overs of drawings from the previous loop!
+
   pantograph.setVertex(1,device_origin.x+l*cos(th1), device_origin.y+l*sin(th1)); // Vertex A with th1 from encoder reading
   pantograph.setVertex(3,device_origin.x+d+l*cos(th2), device_origin.y+l*sin(th2)); // Vertex B with th2 from encoder reading
   pantograph.setVertex(2,device_origin.x+x_E, device_origin.y+y_E); // Vertex E from Fwd Kin calculations  
-  background(255); // To clean up the left-overs of drawings from the previous loop!
   
   shape(pantograph); // Display the pantograph
   shape(joint1);
   shape(joint2); 
+  shape(line1); 
+  shape(handle,x_E, y_E); 
+  stroke(255); 
+  
+  
   
 
-  line(device_origin.x-200, device_origin.y+pos_wall.y, device_origin.x+200,device_origin.y+pos_wall.y);
-
-
-  
-  handle = createShape(ELLIPSE, device_origin.x+x_E, device_origin.y+y_E, 2*r_ee, 2*r_ee);
-  handle.setStroke(color(0));
-  shape(handle); 
-  
-  
-  stroke(0);
-  
 
 }
 
