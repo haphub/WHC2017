@@ -25,7 +25,7 @@ DeviceType      degreesOfFreedom;
 
 /* Graphics Parameters ************************************/
 int             baseFrameRate     = 1000;
-int             animation_count   = baseFrameRate/501;
+int             animation_count   = baseFrameRate/50;
 int             haptics_count     = baseFrameRate/1000;
 
 
@@ -34,24 +34,26 @@ PShape          pantograph, joint1, joint2, handle;
 int             l                 = 2*50;
 int             L                 = 2*70;
 int             d                 = 2*20;
+int             r_ee              = d/3; 
 
-/*Physics parameters*/
+PVector          device_origin    = new PVector (0, 0) ; 
 
-int             y_wall            = 150;
-int             k_wall            = 80;
+/*Physics Simulation parameters*/
 
-float           f_x               = 0;
-float           f_y               = 0;
-
-float           p_Wall;
+PVector        f_wall             = new PVector(0,0); 
+float          k_wall             = 80.0; 
+PVector        pen_wall           = new PVector(0,0); 
+PVector        pos_wall           = new PVector(0, 150); 
 
 
 // generic data for a 2DOF device
-float[]         angles            = new float[2];
-float[]         coordinates       = new float[2];
+// joint space
+PVector        angles            = new PVector(0,0);
+PVector        torques           = new PVector(0,0);
 
-float[]         forces           = new float[2]; 
-float[]         torques           = new float[2]; 
+//task space
+PVector         pos_ee           = new PVector(0,0);
+PVector         f_ee             = new PVector(0,0); 
 
 
 /**
@@ -64,9 +66,7 @@ void setup(){
   size(600, 400, P2D);
   background(255);
   frameRate(baseFrameRate);
-  createpantograph();
-  
-  /* Initialization of the Board, Device, and Device Components*/ 
+   /* Initialization of the Board, Device, and Device Components*/ 
   
   //BOARD
   haply_board = new Board(Serial.list()[0], 0);
@@ -75,59 +75,63 @@ void setup(){
   haply_2DoF = new Device(degreesOfFreedom.TwoDOF, deviceID, haply_board);
   
   haply_2DoF.device_set_parameters();
- 
+  
+  //graphics
+  device_origin.add(width/2, height/4 );
+  createpantograph();
 }
+
 
       
 /**
  * @brief    Main draw function, updates frame at perscribed frame rate
  */
 void draw(){
-  
+  scale(1,-1);
+  translate(0,-height); 
  
   if(haply_board.data_available()){
 
   /*** GET END-EFFECTOR POSITION (TASK SPACE)****/ 
     haply_2DoF.device_read_angles();
-    /* forward kinematics calculation */
-    angles[0] = haply_2DoF.encoders[0].get_angle(); 
-    angles[1] = haply_2DoF.encoders[1].get_angle();
-    haply_2DoF.mechanisms.forwardKinematics(angles);
-    coordinates = haply_2DoF.mechanisms.get_coordinate();
-    
+   
+  /* forward kinematics calculation */
+    angles.x = haply_2DoF.encoders[0].get_angle(); 
+    angles.y = haply_2DoF.encoders[1].get_angle();
+    haply_2DoF.mechanisms.forwardKinematics(angles.array());
+    pos_ee.set( haply_2DoF.mechanisms.get_coordinate());
 		
 /*** PHYSICS OF THE SIMULATION ****/ 
 
-		p_Wall = coordinates[1] - y_wall;
+   f_wall.set(0,0); 
+   
+   pen_wall.set(0, (pos_wall.y - (pos_ee.y+r_ee))); 
+   
+   if(pen_wall.y < 0){
+     f_wall = f_wall.add((pen_wall.mult(-k_wall)));
+   }
+   
+   f_ee = (f_wall.copy()).mult(-1); 
+  }
   
-    if(p_Wall > 0){
-      f_y = -k_wall*p_Wall;
-      forces[0] = f_x; 
-      forces[1] = f_y;
-      haply_2DoF.mechanisms.torqueCalculation(forces);
-      
-      torques = haply_2DoF.mechanisms.get_torque();
-      haply_2DoF.motors[0].set_torque(torques[0]);
-      haply_2DoF.motors[1].set_torque(torques[1]);
-		} 
-    else{
-      haply_2DoF.motors[0].set_torque(0);
-      haply_2DoF.motors[1].set_torque(0);
-    }
-  }
+    haply_2DoF.mechanisms.torqueCalculation(f_ee.array());
+    torques.set(haply_2DoF.mechanisms.get_torque());
+    haply_2DoF.motors[0].set_torque(torques.x);
+    haply_2DoF.motors[1].set_torque(torques.y);
 
-	/******* ANIMATION TIMER ********/ 
+  /******* ANIMATION TIMER ********/ 
   if(frameCount % animation_count == 0){
-    angles = haply_2DoF.mechanisms.get_angle();
-    coordinates = haply_2DoF.mechanisms.get_coordinate();
-    update_animation(angles[0], angles[1], coordinates[0], coordinates[1]);
+    angles.set(haply_2DoF.mechanisms.get_angle());
+    pos_ee.set(haply_2DoF.mechanisms.get_coordinate());
+    update_animation(angles.x, angles.y, pos_ee.x, pos_ee.y);
   }
-	
+  
   /********** HAPTICS TIMER *************/ 
-	
+  
   if(frameCount % haptics_count == 0){
     haply_2DoF.device_write_torques();
   }
+  
   
   
 }
@@ -141,55 +145,57 @@ void draw(){
  * @param    None
  * @return   None 
  */
- 
-void createpantograph(){
-	pantograph = createShape();
-	pantograph.beginShape();
-	pantograph.fill(255);
-	pantograph.stroke(0);
-	pantograph.strokeWeight(2);
-  
-	pantograph.vertex(width/2, 2*height/3);
-	pantograph.vertex(width/2, 2*height/3);
-	pantograph.vertex(width/2, 2*height/3);
-	pantograph.vertex(width/2+d, 2*height/3);
-	pantograph.vertex(width/2+d, 2*height/3);
-	pantograph.endShape(CLOSE);
-  
-	joint1 = createShape(ELLIPSE, width/2, 2*height/3, d/5, d/5);
-	joint1.setStroke(color(0));
-  
-	joint2 = createShape(ELLIPSE, width/2+d, 2*height/3, d/5, d/5);
-	joint2.setStroke(color(0));
 
-  line(0, 2*height/3-y_wall, width, 2*height/3-y_wall);
+void createpantograph(){
+
+  pantograph = createShape();
+  pantograph.beginShape();
+  pantograph.fill(255);
+  pantograph.stroke(0);
+  pantograph.strokeWeight(2);
   
+  
+  pantograph.vertex(device_origin.x, device_origin.y);
+  pantograph.vertex(device_origin.x, device_origin.y);
+  pantograph.vertex(device_origin.x, device_origin.y);
+  pantograph.vertex(device_origin.x+d, device_origin.y);
+  pantograph.vertex(device_origin.x+d, device_origin.y);
+  pantograph.endShape(CLOSE);
+  
+  joint1 = createShape(ELLIPSE, device_origin.x, device_origin.y, d/5, d/5);
+  joint1.setStroke(color(0));
+  
+  joint2 = createShape(ELLIPSE, device_origin.x+d, device_origin.y, d/5, d/5);
+  joint2.setStroke(color(0));
 
 
 }
 
 void update_animation(float th1, float th2, float x_E, float y_E){
-	pantograph.setVertex(1,width/2+l*cos(th1), 2*height/3-l*sin(th1)); // Vertex A with th1 from encoder reading
-	pantograph.setVertex(3,width/2+d+l*cos(th2), 2*height/3-l*sin(th2)); // Vertex B with th2 from encoder reading
-	pantograph.setVertex(2,width/2+x_E, 2*height/3-y_E); // Vertex E from Fwd Kin calculations  
-	background(255); // To clean up the left-overs of drawings from the previous loop!
   
-	shape(pantograph); // Display the pantograph
-	shape(joint1);
-	shape(joint2); 
+  pantograph.setVertex(1,device_origin.x+l*cos(th1), device_origin.y+l*sin(th1)); // Vertex A with th1 from encoder reading
+  pantograph.setVertex(3,device_origin.x+d+l*cos(th2), device_origin.y+l*sin(th2)); // Vertex B with th2 from encoder reading
+  pantograph.setVertex(2,device_origin.x+x_E, device_origin.y+y_E); // Vertex E from Fwd Kin calculations  
+  background(255); // To clean up the left-overs of drawings from the previous loop!
   
-  line(0, 2*height/3-y_wall, width, 2*height/3-y_wall);
+  shape(pantograph); // Display the pantograph
+  shape(joint1);
+  shape(joint2); 
   
-  handle = createShape(ELLIPSE, width/2+x_E, 2*height/3-y_E, d, d);
+
+  line(device_origin.x-200, device_origin.y+pos_wall.y, device_origin.x+200,device_origin.y+pos_wall.y);
+
+
+  
+  handle = createShape(ELLIPSE, device_origin.x+x_E, device_origin.y+y_E, 2*r_ee, 2*r_ee);
   handle.setStroke(color(0));
   shape(handle); 
   
-	stroke(0);
+  
+  stroke(0);
   
 
 }
-
-
 
   ////ENCODERS
   //haply_2DoF.set_encoder_parameters(1, 180, 13824, 1);
