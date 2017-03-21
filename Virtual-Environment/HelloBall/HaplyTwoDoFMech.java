@@ -17,7 +17,7 @@ public class HaplyTwoDoFMech extends Mechanisms{
 		this.l = 2*50; //mm
 		this.L = 2*70;
 		this.d = 2*20;
-		this.gain = 1000; //mN to N
+		this.gain = 20000; //mN to N
 	}
 	
 	public void forwardKinematics(float[] angles){
