@@ -27,7 +27,7 @@ DeviceType      degreesOfFreedom;
 long             baseFrameRate     = 1000;
 long             animation_count   = 0;
 long             haptics_count     = 0;
-
+long             count             = 0; 
 
 PShape          pantograph, joint1, joint2, handle, line1;
 
@@ -87,9 +87,10 @@ void setup(){
  * @brief    Main draw function, updates frame at perscribed frame rate
  */
 void draw(){
+  count = millis(); 
   scale(1,-1);
   translate(0,-height); 
-  
+  //background(255); 
  
   if(haply_board.data_available()){
 
@@ -119,20 +120,20 @@ void draw(){
     torques.set(haply_2DoF.mechanisms.get_torque());
     haply_2DoF.motors[0].set_torque(torques.x);
     haply_2DoF.motors[1].set_torque(torques.y);
-
+  
   /******* ANIMATION TIMER ********/ 
-  if((frameCount - animation_count) > 8){
+  if((count - animation_count) > 8){
     angles.set(haply_2DoF.mechanisms.get_angle());
     pos_ee.set(haply_2DoF.mechanisms.get_coordinate());
     update_animation(angles.x, angles.y, pos_ee.x, pos_ee.y);
-    animation_count = frameCount; 
+    animation_count = millis(); 
   }
   
   /********** HAPTICS TIMER *************/ 
   
-  if((frameCount - haptics_count) > 1){
+  if((count - haptics_count) > 1){
     haply_2DoF.device_write_torques();
-    haptics_count=frameCount; 
+    haptics_count=millis(); 
   }
   
 
