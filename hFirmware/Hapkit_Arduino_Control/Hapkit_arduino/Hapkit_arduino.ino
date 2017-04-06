@@ -65,7 +65,7 @@ actuator  Motor;
 
 // communication variables
 byte      cmd_code;
-byte      device_function;
+byte      device_function = 1;
 
 float     outdata[2];
 float     incoming_data[2];
@@ -126,7 +126,7 @@ void loop() {
         
         //Variables the adventurous user could play with. 
         outdata[0] = xh;
-        outdata[1] = Tp;
+        outdata[1] = force;
         
         send_data(device_function, outdata);
       }

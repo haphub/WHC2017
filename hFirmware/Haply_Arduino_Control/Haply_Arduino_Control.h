@@ -447,11 +447,11 @@ void create_torque(actuator *mtr, float torque){
 
 	torque = abs(torque);
 
-	if(torque > 1){
-		torque = 1;
+	if(torque > 0.123){
+		torque = 0.123;
 	}
 
-	duty = 4095 * torque;
+	duty = 4095 * torque/0.123;
 	
 	pwm_write_duty(mtr->pwmPin, duty);
 } 

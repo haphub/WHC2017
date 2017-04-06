@@ -43,13 +43,13 @@ float rh = 0.075;      //[m]  length of handle in m
 float freq = 0.0;
 float amplitude = 0.0;
 
-/* Haptic rendering vairables ***********************************************************************************/
+/* Haptic rendering variables***********************************************************************************/
 // Parameter for virtual wall
 float x_wall = 0.005;                   // Position of the virtual wall
-float k_wall = 400;                    // Maximum stiffness of the virtual wall
+float k_wall = 400;                   // Maximum stiffness of the virtual wall
 
 // Parameter for linear damping
-float b_linear = 15;                   // Linear damping in N/m
+float b_linear = 10;                   // Linear damping in N/m
 
 // Parameter for spring:
 float k_spring = 100;
@@ -77,12 +77,12 @@ void kinematics_simulation_setup(void){
   b = -(lastRawPos-OFFSET_NEG) * m;
 }
 
-
 /* Kinematics and Simulation function ***************************************************************************/
-/**
+/*
  * @brief    updates MR sensor position
  * @return   none
  */
+ 
 void updateSensorPosition(void){
   
   rawPos = analogRead(SENSORPOSPIN);  //current raw positoin from MR sensor 1
@@ -156,6 +156,7 @@ void computePosition(void){
  * @return   none
  */
 void renderingAlgorithm(int functionNumber, actuator *mtr){
+force =0; 
   
   switch(functionNumber){
     // no force
