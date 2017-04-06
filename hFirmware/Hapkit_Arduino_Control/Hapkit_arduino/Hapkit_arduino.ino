@@ -22,6 +22,7 @@
  * maintaining needed information throughput
  * 3) The Timer1 was repurposed to regularize the sampling time of the haptic simulation to 1kHz. 
  * 4) Added the sensor reading to the interrupt to make sure we never miss sensor counts.
+ * 5) Changed default virtual environment to be No Force
  * 
  *  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *  
@@ -66,7 +67,7 @@ actuator  Motor;
 
 // communication variables
 byte      cmd_code;
-byte      device_function = 1;
+byte      device_function = 0;
 
 float     outdata[2];
 float     incoming_data[2];
