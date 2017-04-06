@@ -47,7 +47,7 @@ void setup(){
   noStroke();
   frameRate(baseFrameRate);
   
-  paddle_link = new Board(Serial.list()[0], 57600);
+  paddle_link = new Board(Serial.list()[2], 57600);
   paddle = new Device(degreesOfFreedom.HapticPaddle, device_function, paddle_link);
   
    HapticPaddle = loadShape("hapticPaddle.svg");

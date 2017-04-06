@@ -132,8 +132,9 @@ void computePosition(void){
   float theta_s; // Angle of the sector pulley in deg
   
   // Compute the angle of the sector pulley (ts) in degrees based on updatedPos
+  noInterrupts(); //protect value from changing mid computation.
   theta_s = m * updatedPos + b; // m = 0.0131 [deg/pos], b = -8.504 [deg]  
-  
+  interrupts();
   // Compute the position of the handle in m
   xh = rh*theta_s;
   

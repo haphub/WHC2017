@@ -21,6 +21,7 @@
  * 2) A communication protocol was established to receive 10 bytes from the computer and transmit 9 bytes from the device while 
  * maintaining needed information throughput
  * 3) The Timer1 was repurposed to regularize the sampling time of the haptic simulation to 1kHz. 
+ * 4) Added the sensor reading to the interrupt to make sure we never miss sensor counts.
  * 
  *  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *  
@@ -110,10 +111,6 @@ void loop() {
     }
     else{
 
-      
-      // update sensor position
-      updateSensorPosition();
-      
       // compute position
       computePosition();
       
@@ -137,4 +134,6 @@ void loop() {
 ISR(TIMER1_OVF_vect){
   TCNT1 = TIMER1_COUNTER;
   timer1_flag = 1;
+  // update sensor position
+      updateSensorPosition();
 }
