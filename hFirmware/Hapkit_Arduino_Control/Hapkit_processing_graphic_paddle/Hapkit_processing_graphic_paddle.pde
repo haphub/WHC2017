@@ -30,14 +30,9 @@ int baseFrameRate = 40;
 byte commType = 0;
 
 byte device_function = 1;
-byte[] positions = {1, 1, 0, 0};
 
+float r_handle = 0.075f; 
 
-
-float freq = 0;
-float amplitude = 0;
-
-int counter=0; 
 PShape HapticPaddle, Base, Force, Logo; 
 float[] angle ;
 float[] torque;
@@ -55,7 +50,6 @@ void setup(){
    Force = loadShape("Force.svg");
    Logo = loadShape("StanfordHapkit.svg"); 
    
-  
 }
 
 
@@ -67,20 +61,13 @@ void draw(){
     paddle.receive_data();
     angle = paddle.mechanisms.get_angle();
     torque = paddle.mechanisms.get_torque(); 
-    //println(angle[0]);
-    println(torque[0]);
-    //println(torque[1]); 
-
-    // //angle= sin(counter*3.14159/180.0);
-     //angle =0; 
-
     draw_static(); 
-    update_handle(angle[0]*10); 
-    update_force(torque[0], angle[0]*10); 
+    update_handle(angle[0]); 
+    update_force(torque[0], angle[0]); 
   
   }
   else{
-     paddle.set_parameters(device_function, freq, amplitude);
+    paddle.set_parameters(device_function, freq, amplitude);
     paddle.send_data();
   }
 }
@@ -96,29 +83,23 @@ void draw_static()
 }
 
 void update_handle(float angle) {
-  // Rotate the shape around the z-axis each time the mouse is pressed
   pushMatrix(); 
-  
    translate(width/2, height/2); 
   rotate(angle); 
   translate(-HapticPaddle.width/2, -HapticPaddle.height/2);
     shape(HapticPaddle,0,0);
-    //counter++; 
-    //translate(0, -HapticPaddle.height/4); 
-  //HapticPaddle.translate(width/2*cos(.1), height/2*sin(.1)); 
   popMatrix(); 
 
 }
 
 void update_force(float force, float angle) {
-  // Rotate the shape around the z-axis each time the mouse is pressed
+
   pushMatrix(); 
    translate(width/2, height/2); 
-  rotate(angle); 
-     
+  rotate(angle);  
   translate(0, -Force.height/2-HapticPaddle.height/4);
   force = -force; 
-  float scaleFactor = 3f; 
+  float scaleFactor = 3.0f; 
   scale(force/scaleFactor);
   translate(0, -Force.height/2*force/(2*scaleFactor)); 
   shape(Force,0,0); 

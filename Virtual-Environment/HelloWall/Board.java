@@ -19,8 +19,8 @@ import processing.serial.*;
 public class Board{
 
 	/* Board object fields */
-	Serial 	port;
-	PApplet applet;	
+	private Serial 	port;
+	private PApplet applet;	
 	
 	private byte 	deviceID;
 	private int 	number_of_parameters = 0;
@@ -30,11 +30,11 @@ public class Board{
    /**
 	* @brief    base constructor for Board object
 	* @param 	portName: serial port name for connection
-	* @param	speed: serial data speed
+	* @param	baud: serial data speed
 	*/
-	public Board(String portName, int speed){
-		this.applet = new PApplet();
-		port = new Serial(applet, portName, speed);
+	public Board(PApplet app, String portName, int baud){
+		this.applet = app;
+		port = new Serial(applet, portName, baud);
 		port.clear();
 	}
 	
@@ -48,7 +48,7 @@ public class Board{
 	* @param	positions: actuator positions of sending device
 	* @param	data: main data payload
 	*/
-	public void send_data(byte type, byte deviceID, byte[] positions, float[] data){
+	public void transmit(byte type, byte deviceID, byte[] positions, float[] data){
 		
 		
 		byte[] outData = new byte[2 + 4*data.length];
@@ -77,7 +77,7 @@ public class Board{
 	* @param	positions: actuator positions of sending device
 	* @return   data: main data payload
 	*/
-	public float[] receive_data(byte type, byte deviceID, byte[] positions){
+	public float[] receive(byte type, byte deviceID, byte[] positions){
 		
 		int size = set_buffer_length(type, positions);
 		
@@ -122,7 +122,7 @@ public class Board{
 		
 		return available;
 	}
-	
+
    
  /* Data formatting and status checking functions **********************************************/
    

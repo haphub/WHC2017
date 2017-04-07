@@ -3,7 +3,7 @@ import static java.lang.Math.*;
 public class HaplyTwoDoFMech extends Mechanisms{
 
 	private float 	l, L, d;
-	private float 	gain;
+
 	
 	private float 	th1, th2;
 	private float 	tau1, tau2;
@@ -11,13 +11,13 @@ public class HaplyTwoDoFMech extends Mechanisms{
 	private float 	x_E, y_E;
 	
 	private float 	pi = 3.14159265359f;
-	private float 	J11, J12, J21, J22;
+	private float 	J11, J12, J21, J22; //Jacobian 
+  private float   gain = 0.1f; 
 	
 	public HaplyTwoDoFMech(){
-		this.l = 2*50; //mm
-		this.L = 2*70;
-		this.d = 2*20;
-		this.gain = 1000; //mN to N
+		this.l = 0.05f; //m
+		this.L = 0.07f;
+		this.d = 0.02f;
 	}
 	
 	public void forwardKinematics(float[] angles){
@@ -65,10 +65,9 @@ public class HaplyTwoDoFMech extends Mechanisms{
 		tau1 = J11*f_x + J12*f_y;
 		tau2 = J21*f_x + J22*f_y;
 		
-		tau1 = -tau1;
+		tau1 = -tau1*gain;
+    tau2 =  tau2*gain;
 		
-		tau1 = tau1/gain;
-		tau2 = tau2/gain;
 	}
 	
 	public void forceCalculation(){
@@ -84,8 +83,7 @@ public class HaplyTwoDoFMech extends Mechanisms{
 	public void set_mechanism_parameters(float[] parameters){
 		l = parameters[0];
 		L = parameters[1];
-		d = parameters[2];
-    gain = 2*1000; 
+		d = parameters[2]; 
 	}
 	
 	public float[] get_coordinate(){

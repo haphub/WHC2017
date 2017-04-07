@@ -71,5 +71,4 @@ public class Sensor{
 		return angle;
 	}
 	
-
 }
