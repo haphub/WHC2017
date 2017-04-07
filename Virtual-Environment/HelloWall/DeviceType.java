@@ -1,3 +1,3 @@
 public enum DeviceType {
-    OneDOF, TwoDOF, ThreeDOF, FourDOF
+    HaplyOneDOF, HaplyTwoDOF, HaplyThreeDOF, HaplyFourDOF, HapticPaddle
 }

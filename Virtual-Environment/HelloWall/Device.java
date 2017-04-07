@@ -15,7 +15,7 @@
 public class Device{
 
 	/* Communication object fields */
-	public 	DeviceType 		DOF;
+	public 	DeviceType 		device_type;
 	public 	byte 			deviceID;
 	
 	public  Actuator[]    	motors;	
@@ -32,51 +32,59 @@ public class Device{
 
    /**
 	* @brief    base constructor for Communication object
-	* @param 	DOF: device degrees of freedom
+	* @param 	device_type: device degrees of freedom
 	* @param	deviceID: device ID
 	* @param	deviceLink: serial link used by device
 	*/
-	public Device(DeviceType DOF, byte deviceID, Board deviceLink){
-		this.DOF = DOF;
+	public Device(DeviceType device_type, byte deviceID, Board deviceLink){
+		this.device_type = device_type;
 		this.deviceID = deviceID;
 		this.deviceLink = deviceLink;
 		
-		switch(DOF){
+		switch(device_type){
   
-			case OneDOF:
+			case HaplyOneDOF:
 				motors = new Actuator[1];
 				encoders = new Sensor[1];
 				mechanisms = new HaplyOneDoFMech();
         device_component_auto_setup();
 				params = new float[1];
 				break;
-			case TwoDOF:
+			case HaplyTwoDOF:
 				motors = new Actuator[2];
 				encoders = new Sensor[2];
-         mechanisms = new HaplyTwoDoFMech(); 
-         device_component_auto_setup(); 
-        		params = new float[2];
+        mechanisms = new HaplyTwoDoFMech(); 
+        device_component_auto_setup(); 
+        params = new float[2];
 				break;
-			case ThreeDOF:
+			case HaplyThreeDOF:
 				motors = new Actuator[3];
 				encoders = new Sensor[3];
 				mechanisms = new HaplyThreeDoFMech();
         device_component_auto_setup(); 
 				params = new float[3];
 				break;
-			case FourDOF:
+			case HaplyFourDOF:
 				motors = new Actuator[4];
 				encoders = new Sensor[4];
 				mechanisms = new HaplyFourDoFMech();
         device_component_auto_setup(); 
 				params = new float[4];
 				break;
+     case HapticPaddle:
+        motors = new Actuator[1];
+        encoders = new Sensor[1];
+        mechanisms = new HapticPaddle();
+        device_component_auto_setup();
+        params = new float[2];
+        break;
+     
 			default:
 				System.err.println("Error: Undefined device type!");
 				break;
 		}
 
-
+   this.device_set_parameters();
 	}
 	
    
@@ -181,72 +189,21 @@ public class Device{
 		}
 	}
 	
-	
+ /**
+  * @brief    updates mechanisms object
+  */  
 	public void set_new_mechanism(Mechanisms mechanisms){
 		this.mechanisms = mechanisms;
 	}
-	
-	
-   /**
-	* @brief    base mechanism forward kinematics calculations
-	* @note		function incomplete, only has equations for 2DOF device !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	*/
- 	public void base_forwardKinematics(){
-		
-		switch(DOF){
-      		case OneDOF:
-        		break;
-        
-			case TwoDOF:
-				params[0] = encoders[0].get_angle(); 
-        		params[1] = encoders[1].get_angle();
-				mechanisms.forwardKinematics(params);
-				break;
-
-      		case ThreeDOF:
-        		break;
-        
-      		case FourDOF:
-        		break;
-		}
-	}
-	 
-	 
-	
-   /**
-	* @brief    base mechanism torque calculations
-	* @note		function incomplete, only has equations for 2DOF device !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	* @param	fx: end effector x location
-	* @param	fy: end effector y location
-	* @param	divisor: divisor constant to keep force calculations in check 
-	*/
- 	public void base_TorqueCalculations(float fx, float fy){
-		
-		//float[] torques;
-		
-		switch(DOF){
-      		case OneDOF:
-        		break;
-        
-			case TwoDOF:
-				params[0] = fx;
-        		params[1] = fy;
-				mechanisms.torqueCalculation(params);
-
-				params = mechanisms.get_torque();
-				motors[0].set_torque(params[0]);
-				motors[1].set_torque(params[1]);
-				break;
-      
-      		case ThreeDOF:
-        		break;
-      
-      		case FourDOF:
-        		break;
-		}
-	}  
-	
-	
+  
+  /**
+  * @brief    update parameters in params array
+  */  
+  public void set_parameters(byte function, float frequency, float amplitude){
+    deviceID = function;
+    params[0] = frequency;
+    params[1] = amplitude;
+  }
 	
  /* Device communication and control functions *************************************************/
 	
@@ -270,7 +227,7 @@ public class Device{
 		}
 
     
-		deviceLink.send_data(communicationType, deviceID, actuator_positions, parameter_data);	
+		deviceLink.transmit(communicationType, deviceID, actuator_positions, parameter_data);	
 	}
 	
 	
@@ -282,7 +239,7 @@ public class Device{
 		communicationType = 0;
     
 		if(deviceLink.data_available()){
-			float[] recieve = deviceLink.receive_data(communicationType, deviceID, actuator_positions);
+			float[] recieve = deviceLink.receive(communicationType, deviceID, actuator_positions);
 		}
 	}
 	
@@ -304,7 +261,7 @@ public class Device{
       		}
     	}
 		
-    	deviceLink.send_data(communicationType, deviceID, actuator_positions, encoder_request);
+    	deviceLink.transmit(communicationType, deviceID, actuator_positions, encoder_request);
 	}
 	
 	
@@ -325,9 +282,16 @@ public class Device{
       		}
     	}
 
-    	deviceLink.send_data(communicationType, deviceID, actuator_positions, device_torques);		
+    	deviceLink.transmit(communicationType, deviceID, actuator_positions, device_torques);		
 	}
 	
+ /**
+  * @brief    send data in params array to device
+  */
+  public void send_data(){
+    communicationType = 1;
+    deviceLink.transmit(communicationType, deviceID, actuator_positions, params);
+  }
 	
    /**
 	* @brief    receive encoder angles from device
@@ -336,7 +300,7 @@ public class Device{
 		
     communicationType = 1;
     
-		float[] angle_data = deviceLink.receive_data(communicationType, deviceID, encoder_positions);
+		float[] angle_data = deviceLink.receive(communicationType, deviceID, encoder_positions);
 		
     	int j = 0;
     	for(int i = 0; i < encoder_positions.length; i++){
@@ -346,7 +310,16 @@ public class Device{
       		}
     	}
 	}
-	
+	 
+ /**
+  * @brief    receive data from device and update mechanism parameters
+  */
+  public void receive_data(){
+    communicationType = 1;
+    float data[] = deviceLink.receive(communicationType, deviceID, actuator_positions);
+    mechanisms.set_mechanism_parameters(data);
+    //return data;
+  }
 	
  /* Device object helper functions *************************************************************/
    
@@ -400,4 +373,67 @@ public class Device{
 		}
 		
 	}
+
+   /**
+  * @brief    assigns actuator positions based on actuator port
+  */
+public float[] get_device_angles(){
+     
+      this.device_read_angles();
+      float[] angles = new float[encoders.length];  
+      
+      for(int i=0; i<encoders.length; i++){
+       angles[i] = this.encoders[i].get_angle();
+      }
+      
+      
+      
+      return angles; 
+}
+
+
+   /**
+  * @brief    assigns actuator positions based on actuator port
+  */
+public float[] get_device_position(){
+      
+      this.device_read_angles();
+      float[] angles = new float[encoders.length];  
+      
+      for(int i=0; i<encoders.length; i++){
+       angles[i] = this.encoders[i].get_angle();
+      }
+      
+      this.mechanisms.forwardKinematics(angles);
+      float[] end_effector_position=  this.mechanisms.get_coordinate();
+      
+      return end_effector_position; 
+}
+
+   /**
+  * @brief    assigns actuator positions based on actuator port
+  */
+public float[] get_device_position(float[] angles){
+        
+      this.mechanisms.forwardKinematics(angles);
+      float[] end_effector_position=  this.mechanisms.get_coordinate();
+      
+      return end_effector_position; 
+}
+
+   /**
+  * @brief    assigns actuator positions based on actuator port
+  */
+
+public void set_device_torques(float[] forces){
+    this.mechanisms.torqueCalculation(forces);
+    float[] torques = this.mechanisms.get_torque();
+    for(int i=0; i<motors.length; i++){
+    this.motors[i].set_torque(torques[i]);
+    }
+}
+
+
+
+
 }

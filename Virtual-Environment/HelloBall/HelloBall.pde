@@ -15,70 +15,95 @@
 
 /* library imports *************************************************************/
 import processing.serial.*;
+import com.dhchoi.CountdownTimer;
+import com.dhchoi.CountdownTimerService;
 
 /* Device block definitions ************************************/
+
 Device          haply_2DoF;
 byte            deviceID = 5;
 Board           haply_board;
 DeviceType      degreesOfFreedom;
-//Mechanisms      NewMech = new NewExampleMech();
 
 /* Graphics Parameters ************************************/
-int             baseFrameRate     = 1000;
-long             animation_count   = 0; 
-long             haptics_count     = 0; 
-long			 count             = 0; 
+int               baseFrameRate      = 120;
+long			        count              = 0; 
 
-PShape          pantograph, joint1, joint2, handle;
-PShape          ball, left_wall, bottom_wall, right_wall; 
+// haptic timer variables
+final long        SIMULATION_PERIOD  = 1; //ms
+final long        HOUR_IN_MILLIS     = 36000000;
+
+CountdownTimer    haptic_timer;
+
+PShape            pantograph, joint1, joint2, handle;
+PShape            ball, left_wall, bottom_wall, right_wall; 
+
+int               pixelsPerMeter     = 4000;
+float             radsPerDegree      = 0.01745;
 
 
-int             l                 = 2*50;
-int             L                 = 2*70;
-int             d                 = 2*20;
-int             r_ee              = d/3; 
+float             l                  = .05;
+float             L                  = .07;
+float             d                  = .02;
+float             r_ee               = d/3; 
+float             r_ee_contact       = d/3; 
+float             r_ball             = d/2; 
 
-int             r_ball            = d/2; 
+PVector           device_origin      = new PVector (0, 0) ; 
 
-PVector          device_origin    = new PVector (0, 0) ; 
 
 /*Physics Simulation parameters*/
 
 // dynamics of ball
-long            oldTimer          = 0; 
-int             m_ball            = 5; //grams
-int             k_ball            = 2000; //grams/s^2
-float           pen_ball          = 0.0; // mm
-float           b_air             = .2; // grams/s
-PVector         f_gravity         = new PVector(0, -8000); // mm/s^2
+
+float           m_ball            = 0.03; //kg
+float           k_ball            = 500;//N/m
+float           b_ball            = 2; 
+float           pen_ball          = 0.0; // m
+float           b_air             = 0.0; // kg/s
+PVector         f_gravity         = new PVector(0,-10*m_ball ); // m/s^2
+float           dt= SIMULATION_PERIOD/1000.0; 
 
 
 // Initial Conditions
-PVector         pos_ball          = new PVector(0,100);  // mm
-PVector         vel_ball          = new PVector(0,0); // mm/s
+PVector           pos_ball           = new PVector(0,0.1);  // mm
+PVector           vel_ball           = new PVector(0,0); // mm/s
 
-PVector         f_ball            = new PVector(0,0); // uN
-PVector         f_contact         = new PVector(0,0);
-PVector         f_damping         = new PVector(0,0); 
+PVector           f_ball             = new PVector(0,0); // uN
+PVector           f_contact          = new PVector(0,0);
+PVector           f_damping          = new PVector(0,0); 
+
+
+PVector         pos_ee2ball;
+float           pos_ee2ball_magnitude;
+
+PVector         vel_ee2ball;
+float           vel_ee2ball_magnitude;
 
 // wall static-contacts
 
+
 PVector        f_wall             = new PVector(0,0); 
-float          k_wall             = 10000.0; 
-float          b_wall             = 10; 
+float          k_wall             = 800; //N/m 
+float          b_wall             = 1;  //kg/s 
 PVector        pen_wall           = new PVector(0,0); 
-PVector        pos_wall_left      = new PVector(-150, 0); 
-PVector        pos_wall_bottom    = new PVector(d/2, 75); 
-PVector        pos_wall_right     = new PVector(150+d, 0); 
+PVector        pos_wall_left      = new PVector(-0.07, .03); 
+PVector        pos_wall_bottom    = new PVector(d/2, .03); 
+PVector        pos_wall_right     = new PVector(0.07+d, .03); 
+
 
 // generic data for a 2DOF device
 // joint space
-PVector        angles            = new PVector(0,0);
-PVector        torques           = new PVector(0,0);
+PVector           angles             = new PVector(0,0);
+PVector           torques            = new PVector(0,0);
 
 //task space
+
 PVector         pos_ee           = new PVector(0,0);
+PVector         pos_ee_last      = new PVector(0,0); 
+PVector         vel_ee           = new PVector(0,0); 
 PVector         f_ee             = new PVector(0,0); 
+
 
 /**
  * @brief    Main setup function, defines parameters and hardware setup
@@ -86,70 +111,200 @@ PVector         f_ee             = new PVector(0,0);
 void setup(){
   
   /*Setup for the graphic display window and drawing objects*/
-  
-  size(600, 400, P2D);
-  background(255);
+  size(1057, 594, P2D);
+  background(0);
   frameRate(baseFrameRate);
 
-  
   
   /* Initialization of the Board, Device, and Device Components*/ 
   
   //BOARD
-  haply_board = new Board(Serial.list()[0], 0);
+  haply_board = new Board(this, Serial.list()[0], 0);
   
   //DEVICE
-  haply_2DoF = new Device(degreesOfFreedom.TwoDOF, deviceID, haply_board);
-  
-  haply_2DoF.device_set_parameters();
-               
-  device_origin.add(width/2, height/4 );
+  haply_2DoF = new Device(degreesOfFreedom.HaplyTwoDOF, deviceID, haply_board);
   
 
+  // GRAPHICS INITIALIZATION
+  // set device in middle of frame on the x-axis and in the lower fifth on the y-axis
+  device_origin.add((width/2), (height/5) );
+  
+  // create pantograph graphics
   createpantograph();
+  
+  // crate ball graphics
+  ball = createBall(r_ball); 
+  ball.setStroke(color(0));
+  
+  // create left-side wall
+  left_wall= createWall(pos_wall_left.x,pos_wall_left.y,pos_wall_left.x,pos_wall_left.y+.07); 
+  left_wall.setStroke(color(0));
+  
+  // create right-side wall
+  right_wall= createWall(pos_wall_right.x,pos_wall_right.y,pos_wall_right.x,pos_wall_right.y+.07); 
+  right_wall.setStroke(color(0));
+  
+  // create bottom-side wall
+  bottom_wall= createWall(pos_wall_bottom.x-.07-d/2,pos_wall_bottom.y,pos_wall_bottom.x+.07+d/2,pos_wall_bottom.y); 
+  bottom_wall.setStroke(color(0));
+    
+  // haptics event timer, create and start a timer that has been configured to trigger onTickEvents
+  // every TICK (1ms or 1kHz) and run for HOUR_IN_MILLIS (1hr), then resetting
+  haptic_timer = CountdownTimerService.getNewCountdownTimer(this).configure(SIMULATION_PERIOD, HOUR_IN_MILLIS).start();
 }
+
+
 
         
 /**
  * @brief    Main draw function, updates frame at perscribed frame rate
  */
 void draw(){
-  count = millis(); 
-  scale(1,-1);
+
+  scale(1,-1); 
   translate(0,-height); 
  
-  if(haply_board.data_available()){
 
-   /*** GET END-EFFECTOR POSITION (TASK SPACE)****/ 
-            haply_2DoF.device_read_angles();
+  update_animation(angles.x*radsPerDegree, angles.y*radsPerDegree, pos_ee.x, pos_ee.y);
+
+  
+
+}
+
+/* Graphical and physics functions -----------------------------------------------------*/
+
+/**
+ * @brief    Specifies the parameters for a haply_2DoF pantograph animation
+ * @note     Currently under prototype
+ * @param    None
+ * @return   None 
+ */
+ 
+void createpantograph(){
+  
+  float l_ani=pixelsPerMeter*l;
+  float L_ani=pixelsPerMeter*L;
+  float d_ani=pixelsPerMeter*d; 
+  float r_ee_ani = pixelsPerMeter*r_ee; 
+ 
+	pantograph = createShape();
+	pantograph.beginShape();
+	pantograph.fill(255);
+	pantograph.stroke(0);
+	pantograph.strokeWeight(2);
+  
+  
+	pantograph.vertex(device_origin.x, device_origin.y);
+	pantograph.vertex(device_origin.x, device_origin.y);
+	pantograph.vertex(device_origin.x, device_origin.y);
+	pantograph.vertex(device_origin.x+d_ani, device_origin.y);
+	pantograph.vertex(device_origin.x+d_ani, device_origin.y);
+	pantograph.endShape(CLOSE);
+  
+	joint1 = createShape(ELLIPSE, device_origin.x, device_origin.y, d_ani/5, d_ani/5);
+	joint1.setStroke(color(0));
+  
+	joint2 = createShape(ELLIPSE, device_origin.x+d_ani, device_origin.y, d_ani/5, d_ani/5);
+	joint2.setStroke(color(0));
+
+	handle = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ee_ani, 2*r_ee_ani);
+	handle.setStroke(color(0));
+  strokeWeight(5);
+}
+
+
+PShape createWall(float x1, float y1, float x2, float y2){
+  
+  x1= pixelsPerMeter*x1; 
+  y1= pixelsPerMeter*y1; 
+  x2=pixelsPerMeter*x2; 
+  y2=pixelsPerMeter*y2; 
+  
+  return createShape(LINE, device_origin.x+x1, device_origin.y+y1, device_origin.x+x2, device_origin.y+y2);
+
+}
+
+
+PShape createBall(float r_ball){
+  
+  r_ball = pixelsPerMeter*r_ball; 
+  
+  return createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ball, 2*r_ball);
+  
+}
+
+
+void update_animation(float th1, float th2, float x_E, float y_E){
+  
+  background(255); // To clean up the left-overs of drawings from the previous loop!
+  x_E = pixelsPerMeter*x_E; 
+  y_E = pixelsPerMeter*y_E; 
+  float l_ani = pixelsPerMeter*l; 
+  float L_ani = pixelsPerMeter*L; 
+  float d_ani = pixelsPerMeter*d; 
+  
+  
+	pantograph.setVertex(1,device_origin.x+l_ani*cos(th1), device_origin.y+l_ani*sin(th1)); // Vertex A with th1 from encoder reading
+	pantograph.setVertex(3,device_origin.x+d_ani+l_ani*cos(th2), device_origin.y+l_ani*sin(th2)); // Vertex B with th2 from encoder reading
+	pantograph.setVertex(2,device_origin.x+x_E, device_origin.y+y_E); // Vertex E from Fwd Kin calculations  
+  
+
+	shape(pantograph); // Display the pantograph
+	shape(joint1);
+	shape(joint2); 
+	shape(left_wall );
+	shape(right_wall);
+	shape(bottom_wall);
+  shape(ball, pos_ball.x*pixelsPerMeter , pos_ball.y*pixelsPerMeter); 
+  stroke(0);
+  pushMatrix(); 
+	//shape(handle,x_E+d_ani/6+r_ee_contact, y_E, 2*r_ee_contact*pixelsPerMeter, 2*r_ee_contact*pixelsPerMeter); 
+  shape(handle,x_E+d_ani/6+r_ee, y_E, 2*r_ee*pixelsPerMeter, 2*r_ee*pixelsPerMeter); 
+	stroke(0); 
+  popMatrix(); 
+
+  
+}
+
+/**
+ * @brief    Haptics event simulation, current max frequency 1kHz
+ */
+void onTickEvent(CountdownTimer t, long timeLeftUntilFinish){
+
+if(haply_board.data_available()){
+
+     /*** GET END-EFFECTOR STATE (TASK SPACE)****/ 
             
-            /* forward kinematics calculation */
-            angles.x = haply_2DoF.encoders[0].get_angle(); 
-            angles.y = haply_2DoF.encoders[1].get_angle();
-            haply_2DoF.mechanisms.forwardKinematics(angles.array());
-            pos_ee.set( haply_2DoF.mechanisms.get_coordinate());
-            
-             
-		
+      angles.set(haply_2DoF.get_device_angles()); 
+      pos_ee.set( haply_2DoF.get_device_position(angles.array()));
+      vel_ee.set((pos_ee.copy().sub(pos_ee_last)).div(dt)); 
+      pos_ee_last= pos_ee; 
 /*** PHYSICS OF THE SIMULATION ****/ 
 
 
 //Contact Forces
 
 
-		PVector vec_ee2ball = (pos_ball.copy()).sub(pos_ee);
-    float vec_ee2Ball_magnitude = vec_ee2ball.mag(); 
-    pen_ball = vec_ee2Ball_magnitude - (r_ball+r_ee);
+    pos_ee2ball = (pos_ball.copy()).sub(pos_ee);
+    pos_ee2ball_magnitude = pos_ee2ball.mag(); 
+    pen_ball = pos_ee2ball_magnitude - (r_ball+r_ee);
     
+    
+ 
     //println(pen_ball); 
   
   // ball forces
     if(pen_ball<0){
-       f_contact= vec_ee2ball.normalize();
-       f_contact= f_contact.mult(-k_ball*pen_ball);  // since pen_ball is negative k_ball must be negative to ensure the force acts along the end-effector to the ball
-      
-		}
+      r_ee_contact = r_ee + pen_ball; 
+      f_contact= pos_ee2ball.normalize();
+      vel_ee2ball = ((vel_ball.copy()).sub(vel_ee)); 
+      vel_ee2ball = f_contact.copy().mult(vel_ee2ball.dot(f_contact)); 
+      vel_ee2ball_magnitude = vel_ee2ball.mag(); 
+      f_contact= f_contact.mult(-k_ball*pen_ball-b_ball*vel_ee2ball_magnitude);  // since pen_ball is negative k_ball must be negative to ensure the force acts along the end-effector to the ball
+       //f_contact= f_contact.add((vel_ee2ball.normalize()).mult(-b_ball*vel_ee2ball_magnitude)); 
+    }
     else{
+      r_ee_contact = r_ee; 
       f_contact.set(0,0); 
     }
   
@@ -186,112 +341,29 @@ void draw(){
     f_ball = (f_contact.copy()).add(f_gravity).add(f_damping).add(f_wall); 
     f_ee = (f_contact.copy()).mult(-1); 
     
-    haply_2DoF.mechanisms.torqueCalculation(f_ee.array());
+    haply_2DoF.set_device_torques(f_ee.array());
     torques.set(haply_2DoF.mechanisms.get_torque());
-    haply_2DoF.motors[0].set_torque(torques.x);
-    haply_2DoF.motors[1].set_torque(torques.y);
     
 
 // INTEGRATE THE ACCELERATION TO GET THE STATES OF THE BALL
-long currentTimer = count; 
-float dt = (float)(currentTimer - oldTimer); 
-//println(dt); 
-//dt = dt/1000; 
-//dt = (dt < 0.001 )? 0.002 : dt; 
-//println(dt);
-dt=.001; 
-//println(dt);
 pos_ball = (((f_ball.copy()).div(2*m_ball)).mult(dt*dt)).add(((vel_ball.copy()).mult(dt))).add(pos_ball);
 vel_ball = (((f_ball.copy()).div(m_ball)).mult(dt)).add(vel_ball); 
 
-oldTimer = currentTimer; 
 
 }
 
-	/******* ANIMATION TIMER ********/ 
-  if((count-animation_count) > 16){
-    angles.set(haply_2DoF.mechanisms.get_angle());
-    pos_ee.set(haply_2DoF.mechanisms.get_coordinate());
-    update_animation(angles.x, angles.y, pos_ee.x, pos_ee.y);
-  }
-	
-  /********** HAPTICS TIMER *************/ 
-	
-  if((count - haptics_count) > 1){
-    haply_2DoF.device_write_torques();
-  }
-  
-  
+  haply_2DoF.device_write_torques();
 }
-
-/* Graphical and physics functions -----------------------------------------------------*/
 
 /**
- * @brief    Specifies the parameters for a haply_2DoF pantograph animation
- * @note     Currently under prototype
- * @param    None
- * @return   None 
+ * @brief    haptic timer reset
  */
- 
-void createpantograph(){
-
-	pantograph = createShape();
-	pantograph.beginShape();
-	pantograph.fill(0);
-	pantograph.stroke(255);
-	pantograph.strokeWeight(2);
-  
-  
-	pantograph.vertex(device_origin.x, device_origin.y);
-	pantograph.vertex(device_origin.x, device_origin.y);
-	pantograph.vertex(device_origin.x, device_origin.y);
-	pantograph.vertex(device_origin.x+d, device_origin.y);
-	pantograph.vertex(device_origin.x+d, device_origin.y);
-	pantograph.endShape(CLOSE);
-  
-	joint1 = createShape(ELLIPSE, device_origin.x, device_origin.y, d/5, d/5);
-	joint1.setStroke(color(255));
-  
-	joint2 = createShape(ELLIPSE, device_origin.x+d, device_origin.y, d/5, d/5);
-	joint2.setStroke(color(255));
-
-	handle = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ee, 2*r_ee);
-	handle.setStroke(color(255));
-	
-	left_wall = createShape(LINE, device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_left.x, device_origin.y+300);
-	left_wall.setStroke(color(255));
-	
-	right_wall = createShape(LINE, device_origin.x+pos_wall_right.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x, device_origin.y+300);
-	right_wall.setStroke(color(255));
-	
-	bottom_wall = createShape(LINE, device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x,device_origin.y+pos_wall_bottom.y);
-	bottom_wall.setStroke(color(255));
-	
-	ball = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ball, 2*r_ball);
-	ball.setStroke(color(255));
+void onFinishEvent(CountdownTimer t){
+  println("Resetting timer...");
+  haptic_timer.reset();
+  haptic_timer = CountdownTimerService.getNewCountdownTimer(this).configure(SIMULATION_PERIOD, HOUR_IN_MILLIS).start();
 }
 
-void update_animation(float th1, float th2, float x_E, float y_E){
-    background(0); // To clean up the left-overs of drawings from the previous loop!
-
-  
-	pantograph.setVertex(1,device_origin.x+l*cos(th1), device_origin.y+l*sin(th1)); // Vertex A with th1 from encoder reading
-	pantograph.setVertex(3,device_origin.x+d+l*cos(th2), device_origin.y+l*sin(th2)); // Vertex B with th2 from encoder reading
-	pantograph.setVertex(2,device_origin.x+x_E, device_origin.y+y_E); // Vertex E from Fwd Kin calculations  
-  
-	shape(pantograph); // Display the pantograph
-	shape(joint1);
-	shape(joint2); 
-	shape(left_wall);
-	shape(right_wall);
-	shape(bottom_wall);
-	shape(handle,x_E, y_E); 
-	  stroke(255); 
-	shape(ball, pos_ball.x, pos_ball.y); 
-	stroke(255);
-  
-
-}
 
   ////ENCODERS
   //haply_2DoF.set_encoder_parameters(1, 180, 13824, 1);
