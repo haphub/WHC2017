@@ -24,7 +24,7 @@ DeviceType      degreesOfFreedom;
 //Mechanisms      NewMech = new NewExampleMech();
 
 /* Graphics Parameters ************************************/
-int             baseFrameRate     = 1000;
+int             baseFrameRate     = 500;
 long             animation_count   = 0; 
 long             haptics_count     = 0; 
 long			 count             = 0; 
@@ -90,8 +90,7 @@ void setup(){
   size(600, 400, P2D);
   background(255);
   frameRate(baseFrameRate);
-
-  
+   
   
   /* Initialization of the Board, Device, and Device Components*/ 
   
@@ -195,11 +194,11 @@ void draw(){
 // INTEGRATE THE ACCELERATION TO GET THE STATES OF THE BALL
 long currentTimer = count; 
 float dt = (float)(currentTimer - oldTimer); 
-//println(dt); 
+println(dt); 
 //dt = dt/1000; 
 //dt = (dt < 0.001 )? 0.002 : dt; 
 //println(dt);
-dt=.001; 
+dt=.002; 
 //println(dt);
 pos_ball = (((f_ball.copy()).div(2*m_ball)).mult(dt*dt)).add(((vel_ball.copy()).mult(dt))).add(pos_ball);
 vel_ball = (((f_ball.copy()).div(m_ball)).mult(dt)).add(vel_ball); 
@@ -266,9 +265,12 @@ void createpantograph(){
 	
 	bottom_wall = createShape(LINE, device_origin.x+pos_wall_left.x, device_origin.y+pos_wall_bottom.y, device_origin.x+pos_wall_right.x,device_origin.y+pos_wall_bottom.y);
 	bottom_wall.setStroke(color(255));
-	
+  
 	ball = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*r_ball, 2*r_ball);
-	ball.setStroke(color(255));
+	ball.setStroke(color(255,0,0));  //works
+  ball.setFill(color(255,255,0));  //works
+  
+
 }
 
 void update_animation(float th1, float th2, float x_E, float y_E){
@@ -287,8 +289,9 @@ void update_animation(float th1, float th2, float x_E, float y_E){
 	shape(bottom_wall);
 	shape(handle,x_E, y_E); 
 	  stroke(255); 
-	shape(ball, pos_ball.x, pos_ball.y); 
-	stroke(255);
+
+  shape(ball, pos_ball.x, pos_ball.y); 
+	//stroke(255,0,0);
   
 
 }
