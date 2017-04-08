@@ -17,16 +17,21 @@ code by Colin Gallacher and Steven Ding
 import processing.serial.*;
 Board paddle_link;
 Device  paddle;
-DeviceType degreesOfFreedom;
 int baseFrameRate = 50;
 byte commType = 0;
 byte device_function = 2;
-byte[] positions = {1, 1, 0, 0};
 float[] in_data;
-float freq = 0;
-float amplitude = 0;
+
+//graphical parametres
+int graphics_y = 100;
+int paddle_width = 20;
+int paddle_height = 50;
+int ball_radius = 20;
+int paddle_position = 100;
+int ball_position = 200;
+
 void setup() {
-  size(200, 200);
+  size(900,500);
   noStroke();
   frameRate(baseFrameRate);
 
@@ -37,37 +42,29 @@ void setup() {
     //if (Serial.list()[i].substring("VID:PID403:6001"
   }
   paddle_link = new Board(Serial.list()[1], 57600);
-  paddle = new Device(degreesOfFreedom.HapticPaddle, device_function, paddle_link);
+  paddle = new Device(DeviceType.HapticPaddle, device_function, paddle_link);
 }
 
-long currentTime; 
-long oldTime; 
-
 void draw() {
-  currentTime = millis(); 
-  if ((currentTime-oldTime) > 5000) {
-    device_function = (byte)(device_function+1);  
-    oldTime = currentTime; 
-
-    if (device_function > 3) device_function = (byte) 0;
-  }
-
 
   if (paddle_link.data_available()) {
-
+    
     paddle.receive_data();
     in_data = paddle.mechanisms.get_angle();
-    //println(in_data.length);
-    print(in_data[0]);
-    print(",");
-    in_data = paddle.mechanisms.get_torque();
-    println(in_data[0]);
+    //print(in_data[0]);
+    //print(",");
+    //in_data = paddle.mechanisms.get_torque();
+    //println(in_data[0]);
+    paddle_position = (int)(100 * paddle.mechanisms.get_angle()[0]); //MELISA UPDATE HERE
+    ball_position = (int)(100 * paddle.mechanisms.get_torque()[0]); //MELISA UPDATE HERE
+  
+  } 
+  
+  background(255);
+  fill(255,0,0);
+  rect(paddle_position-paddle_width/2, graphics_y-paddle_height/2, paddle_width, paddle_height);
+  fill(0,0,255);
+  ellipse(ball_position, graphics_y, ball_radius*2, ball_radius*2);
+  
     
-
-  } else {
-
-    //device_function = 0;
-    paddle.set_parameters(device_function, freq, amplitude);
-    paddle.send_data();
-  }
 }
