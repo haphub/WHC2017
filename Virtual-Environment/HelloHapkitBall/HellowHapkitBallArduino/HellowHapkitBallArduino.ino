@@ -1,7 +1,8 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * This work was originally developed by Stanford Universty. The current version has been
- * modified by Steven Ding and Colin Gallacher. The current work is intented to function 
- * with the hAPI developed for the World Haptics Conference Student Innovation Challenge.
+ * modified by Steven Ding, Colin Gallacher, Oliver Schneider and Melisa Orta Martinez. 
+ * The current work is intented to function with the hAPI developed for the World Haptics 
+ * Conference Student Innovation Challenge.
  * 
  * The following code is subject to the 
  * 
@@ -23,27 +24,21 @@
  * 3) The Timer1 was repurposed to regularize the sampling time of the haptic simulation to 1kHz. 
  * 4) Added the sensor reading to the interrupt to make sure we never miss sensor counts.
  * 5) Changed default virtual environment to be No Force
+ * 6) Added dynamic simulation
  * 
  *  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *  
  * Instructions:
  * 
- * This code archatecture consists of three files. The Hapkit_arduino.ino file handles the communication of data between an external 
+ * This code architecture consists of three files. The Hapkit_arduino.ino file handles the communication of data between an external 
  * computer handling the user interface. An API (hAPI) has been developed in Java to work in processing and handle communication between 
  * the Hapkit and the user interface. 
  * 
- * Users should place their programmed virtual environments inside of the Hapkit_Kinematics_Simulation folder in section 2. By modifying the 
- * included cases or including your own cases you have the ability to create virtual environments that will be simulated on the Hapkit.
+ * This example code is meant to show the user how to render a dynamic simulation using Hapkit. 
+ * In this simulated environment there is a ball that collides with Hapkit. Upon collition the user will feel a force and the ball will
+ * move in the other direction until gravity pulls it back towards Hapkit again. Please note that when using Hapkit the whole virtual
+ * enviroment needs to be simulated in the Arduino code. 
  * 
- * The Hapkit recieves data from the external user interface that instructs the Hapkit about which virtual environment it should render as well 
- * as providing additional information about the amplitude and frequency (ask Melisa to better explain this as the desired use case as it was described to me as 
- * 'simulating math'.
- * 
- * Users can update which function they want to render by passing in the appropriate arguments from the user interface. The Hapkit expects to receive
- * a data structure consisting of [ byte arg 1, byte arg2, float arg3, float arg 4]. These arguments instruct (arg1) what type of communication the device  
- * is receiving, (arg2) what function the user wants to render virtually (arg3) the Amplitude and (arg4) the Frequency. The Hapkit then simulates the virtual environment dependent on the 
- * incoming arguments and will return a data packet consiting of [byte arg1, float arg2, float arg3], where arg1 returns the rendered function as a check, 
- * arg2 is the device angle/position, and arg3 is a force/torque. These values can be used in the user interface to program cool effects! 
  * 
  * The hAPI is the portal to the user interface on an external computer. It can handle the construction and respective communication   
  * of the data as well as setting up the respective paramters required to use a Haptic Paddle. 
@@ -87,22 +82,20 @@ typedef struct
 } Ball;
 Ball ball;
 //constant velocity when the ball bounces so to not introduce too much energy into the system
-const float BALL_BOUNCE_VELOCITY = 0.02; //m/s? //MELISA SWITCH THIS I DON'T KNOW THE UNITS
-const float GRAVITY = 0.0098; //m/s^2? MELISA DOUBLE CHECK UNITS
+const float BALL_BOUNCE_VELOCITY = 0.02; //m/s
+const float GRAVITY = 0.0098; //m/s^2
 
 boolean startSim = false;
 boolean applyForce = false;
 int forceCounter = 0;
 
-// You don't really want to touch any of this code as it just handles the setup of the device.
-//The only part users may want to explore is the passing of variables commented in the code below. 
-
+ 
 void setup() {
   noInterrupts();
 
   ball.x = 0;
   ball.velocity = 0;
-  ball.mass = 0.005; //kg! MELISA DOUBLE CHECK UNITS
+  ball.mass = 0.005; //kg
 
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
@@ -121,9 +114,10 @@ void setup() {
 void loop() {
   if(timer1_flag){
     timer1_flag = 0;
-    //Serial.println(ball.x);
-    if(Serial.available() > 0){
-
+    // even though for dynamic simulation we don't need to receive data from device, hAPI requires it 
+    // in order to run and close the loop. So just receive. 
+    if(Serial.available() > 0)
+    {
       reply = true;
       startSim = true;
       
@@ -139,29 +133,27 @@ void loop() {
       // compute position
       computePosition();
       
-      // rendering algorithm
+      // Instead of the normal rendering algorithm, we will implement a dynamic 
+      // simulation in the main loop. So comment out rendering Algorithm
       //renderingAlgorithm(device_function, &Motor);
       
       // We're using a custom rendering algorithm
-      //MELISA START HERE
-      
-      if (ball.x > xh)
+      if (ball.x > xh) //the ball is in free space, will get pulled towards Hapkit with gravity
       {
         //update with gravity
-        ball.velocity -= GRAVITY*0.001; //MELISA DOUBLECHECK DIRECTION
+        ball.velocity -= GRAVITY*0.001; 
         
         ball.x += ball.velocity*0.001;
          
-      } else {
-        //force = (ball.x - xh) * (-k_spring); //what do we want the ball to display when it hits?
+      } else { // the ball has hit Hapkit. 
         applyForce = true;
         ball.velocity = BALL_BOUNCE_VELOCITY;
         ball.x = ball.x + ball.velocity*0.001;
         
       }
-      if (applyForce && startSim)
+      if (applyForce && startSim) // if the ball has hit Hapkit and it is connected to processing, we will render a force
       {
-        if (forceCounter < 3)
+        if (forceCounter < 3) // the force will be a step. 
         {
           force = -5;
           forceCounter = forceCounter + 1;
@@ -175,8 +167,9 @@ void loop() {
       }
       else
       {
-        force = 0;
+        force = 0; // there will be no force rendered when we are in free space
       }
+      
       Tp = rp/rs * rh * force; // compute the required motor pulley torque (Tp) to generate that force
   
       forceOutput(&Motor, force, Tp);
