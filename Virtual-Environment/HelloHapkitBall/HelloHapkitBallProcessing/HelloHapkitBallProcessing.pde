@@ -17,7 +17,9 @@ code by Colin Gallacher and Steven Ding
 import processing.serial.*;
 Board paddle_link;
 Device  paddle;
-int baseFrameRate = 50;
+DeviceType degreesOfFreedom;
+
+int baseFrameRate = 40;
 byte commType = 0;
 byte device_function = 2;
 float[] in_data;
@@ -29,6 +31,8 @@ int paddle_height = 50;
 int ball_radius = 20;
 int paddle_position = 100;
 int ball_position = 200;
+int WindowHeight = 500;
+int WindowWidth = 900;
 
 void setup() {
   size(900,500);
@@ -41,24 +45,31 @@ void setup() {
     print(Serial.list()[i]);
     //if (Serial.list()[i].substring("VID:PID403:6001"
   }
-  paddle_link = new Board(Serial.list()[1], 57600);
+  paddle_link = new Board(Serial.list()[2], 57600);
   paddle = new Device(DeviceType.HapticPaddle, device_function, paddle_link);
 }
 
 void draw() {
-
+  float temp_paddle_position;
+  float temp_ball_position;
   if (paddle_link.data_available()) {
-    
     paddle.receive_data();
     in_data = paddle.mechanisms.get_angle();
     //print(in_data[0]);
     //print(",");
     //in_data = paddle.mechanisms.get_torque();
     //println(in_data[0]);
-    paddle_position = (int)(100 * paddle.mechanisms.get_angle()[0]); //MELISA UPDATE HERE
-    ball_position = (int)(100 * paddle.mechanisms.get_torque()[0]); //MELISA UPDATE HERE
-  
-  } 
+    //paddle_position = (int)(100 * paddle.mechanisms.get_angle()[0]); //MELISA UPDATE HERE
+    temp_paddle_position = paddle.mechanisms.get_angle()[0];
+    paddle_position = (int)(map(temp_paddle_position, -0.1,0.1,0,WindowWidth)); // scale position of paddle to window parameters
+    //ball_position = (int)(100 * paddle.mechanisms.get_torque()[0]); //MELISA UPDATE HERE
+    temp_ball_position = paddle.mechanisms.get_torque()[0];
+    ball_position = (int)(map(temp_ball_position, -0.1,0.1,0,WindowWidth));
+  }
+  else{
+     //paddle.set_parameters(device_function, 0, 0);
+     paddle.send_data();
+  }
   
   background(255);
   fill(255,0,0);

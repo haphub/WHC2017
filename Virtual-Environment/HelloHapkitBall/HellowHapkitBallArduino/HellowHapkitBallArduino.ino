@@ -87,8 +87,12 @@ typedef struct
 } Ball;
 Ball ball;
 //constant velocity when the ball bounces so to not introduce too much energy into the system
-const float BALL_BOUNCE_VELOCITY = 20; //m/s? //MELISA SWITCH THIS I DON'T KNOW THE UNITS
-const float GRAVITY = 9.8; //m/s^2? MELISA DOUBLE CHECK UNITS
+const float BALL_BOUNCE_VELOCITY = 0.02; //m/s? //MELISA SWITCH THIS I DON'T KNOW THE UNITS
+const float GRAVITY = 0.0098; //m/s^2? MELISA DOUBLE CHECK UNITS
+
+boolean startSim = false;
+boolean applyForce = false;
+int forceCounter = 0;
 
 // You don't really want to touch any of this code as it just handles the setup of the device.
 //The only part users may want to explore is the passing of variables commented in the code below. 
@@ -98,13 +102,18 @@ void setup() {
 
   ball.x = 0;
   ball.velocity = 0;
-  ball.mass = 50; //g? MELISA DOUBLE CHECK UNITS
+  ball.mass = 0.005; //kg! MELISA DOUBLE CHECK UNITS
 
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
   standard_hapkit_setup(&Motor);
   kinematics_simulation_setup();
   Serial.begin(57600);
+  //don't run simulation unless processing is active. This is important for dynamic simulation
+  // in which graphics guide action. Helps protect device. Can change for debugging.
+   startSim = false;
+  applyForce = false;
+  forceCounter = 0;
   
   interrupts();
 }
@@ -112,10 +121,11 @@ void setup() {
 void loop() {
   if(timer1_flag){
     timer1_flag = 0;
-
+    //Serial.println(ball.x);
     if(Serial.available() > 0){
 
       reply = true;
+      startSim = true;
       
       cmd_code = command_instructions(Serial.read(), &number_of_motors, motors_active);
 
@@ -134,15 +144,38 @@ void loop() {
       
       // We're using a custom rendering algorithm
       //MELISA START HERE
+      
       if (ball.x > xh)
       {
         //update with gravity
-        ball.velocity -= GRAVITY; //MELISA DOUBLECHECK DIRECTION
-        ball.x += ball.velocity;
-        force = 0; //??
+        ball.velocity -= GRAVITY*0.001; //MELISA DOUBLECHECK DIRECTION
+        
+        ball.x += ball.velocity*0.001;
+         
       } else {
-        force = (ball.x - xh) * (-k_spring); //what do we want the ball to display when it hits?
-        ball.x = BALL_BOUNCE_VELOCITY;
+        //force = (ball.x - xh) * (-k_spring); //what do we want the ball to display when it hits?
+        applyForce = true;
+        ball.velocity = BALL_BOUNCE_VELOCITY;
+        ball.x = ball.x + ball.velocity*0.001;
+        
+      }
+      if (applyForce && startSim)
+      {
+        if (forceCounter < 3)
+        {
+          force = -5;
+          forceCounter = forceCounter + 1;
+        }
+        else
+        {
+          force = 0;
+          applyForce = false;
+          forceCounter = 0;
+        }
+      }
+      else
+      {
+        force = 0;
       }
       Tp = rp/rs * rh * force; // compute the required motor pulley torque (Tp) to generate that force
   
