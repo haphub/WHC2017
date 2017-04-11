@@ -57,7 +57,7 @@ PVector           device_origin      = new PVector (0, 0) ;
 // dynamics of ball
 
 float           m_ball            = 0.03; //kg
-float           k_ball            = 500;//N/m
+float           k_ball            = 100;//N/m
 float           b_ball            = 0.05; 
 float           pen_ball          = 0.0; // m
 float           b_air             = 0.0; // kg/s
