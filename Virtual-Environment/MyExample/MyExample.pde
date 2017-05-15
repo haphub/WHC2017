@@ -19,12 +19,15 @@ int             l                 = 2*50;
 int             L                 = 2*70;
 int             d                 = 2*20;
 int             r_ee              = d/3;     //radius of handle
+int             s                 = 10;
+float           g                 = 9.8;
+int             m                 = 5;
 
 PVector          device_origin    = new PVector (0, 0) ; 
 
 //dynamics of planets
 long            oldTimer          = 0; 
-
+float           b_air             = .2; // grams/s
 // generic data for a 2DOF device
 // joint space
 PVector        angles            = new PVector(0,0);
@@ -32,43 +35,48 @@ PVector        torques           = new PVector(0,0);
 
 //task space
 PVector         pos_ee           = new PVector(0,0);
+PVector         f_ee             = new PVector(0,0);         //force to handle
 
-int planetno = 3;
+int planetno = 9;
 Planet[] planets = new Planet[planetno];
- PShape[] planetshape = new PShape[planetno];
+PShape[] planetshape = new PShape[planetno];
 
 //==================ClassPlanet================================
 class Planet{
   float radius;              //radius
   float mass;                //mass
-  int k = 5000;                //some constant
+  int k = 2000;                //some constant
+  float gravity;                //gravity
   float pen = 0.0;            //distance between planet and handle
-  float accel = 0;            //acceleration
   PVector position;          //position
   PVector temposition;        //temperary position
-  PVector restposition;       //rest position
   PVector velocity = new PVector(0,0);          //velocity
   PVector f = new PVector(0,0);            //force acting on planet
-  float damping = 0.98;      //damping force
+  PVector damping  = new PVector(0,0);      //damping force
   PVector contact = new PVector(0,0);      //contact force
-  PVector f_ee = new PVector(0,0);         //
   boolean hit = false;             //hit by handle
   PVector vec_ee2Planet = new PVector(0,0);
   color colorOfPlanet;
   
   //Constructor
-  Planet(float r, float m, PVector pos, color c){
+  Planet(float r, float m, float gra, PVector pos, color c){
     radius = r;
     mass = m;
+    gravity = gra;
     position = pos;
     temposition = pos;
-    restposition = pos;
     colorOfPlanet = c;
   }
   
   void update(){
+    // INTEGRATE THE ACCELERATION TO GET THE STATES OF THE BALL
+    long currentTimer = count; 
+    float dt = (float)(currentTimer - oldTimer); 
+    println(dt);
+    dt=.002;
+       
     //contact force
-    hit = isHit(position);
+    hit = isHit();
     if(hit){
       contact = vec_ee2Planet.normalize();
       contact = contact.mult(-k * pen);
@@ -76,11 +84,23 @@ class Planet{
     }else{
       contact.set(0,0);
     }
+    
+    //forces due to damping
+    damping = (velocity.copy()).mult(-b_air);
       
     //sum of forces
-    //f = (contact.copy()).add(damping);  //edit damping
-    f = contact;
-    //f = (temposition.sub(restposition)).mult(-k);
+    f = (contact.copy()).add(damping);
+    velocity = (((f.copy()).div(mass)).mult(dt)).add(velocity);
+    
+    if((velocity.x > -1 || velocity.x < 1) && (velocity.y > -1 || velocity.y < 1)){
+      
+      float fx = -gravity * (temposition.x - position.x);
+      float fy = -gravity * (temposition.y - position.y);
+      f = new PVector(fx, fy);
+      velocity = (((f.copy()).div(mass)).mult(dt)).add(velocity);
+    }
+    
+    temposition = (((f.copy()).div(2*mass)).mult(dt*dt)).add(((velocity.copy()).mult(dt))).add(temposition);
     f_ee = (contact.copy()).mult(-1);
     
     
@@ -89,21 +109,11 @@ class Planet{
     haply_2DoF.motors[0].set_torque(torques.x);
     haply_2DoF.motors[1].set_torque(torques.y);
     
-    // INTEGRATE THE ACCELERATION TO GET THE STATES OF THE BALL
-    long currentTimer = count; 
-    float dt = (float)(currentTimer - oldTimer); 
-    println(dt);
-    
-    dt=.002;
-    
-    velocity = setVel(dt);
-    temposition = setPos(dt);
-    
-    oldTimer = currentTimer; 
+    oldTimer = currentTimer;
   }
   
-  boolean isHit(PVector pos){
-    vec_ee2Planet = (pos.copy()).sub(pos_ee);
+  boolean isHit(){
+    vec_ee2Planet = (temposition.copy()).sub(pos_ee);
     float vec_ee2Planet_magnitude = vec_ee2Planet.mag();
     pen = vec_ee2Planet_magnitude - (radius + r_ee);
     if(pen < 0){
@@ -113,22 +123,6 @@ class Planet{
     }
   }
   
-  PVector setPos(float dt){
-    PVector pos = (((f.copy()).div(2*mass)).mult(dt*dt)).add(((velocity.copy()).mult(dt))).add(position);
-    //PVector pos = temposition.add(velocity);
-    return pos;
-  }
-  
-  PVector setVel(float dt){
-    PVector vel = ((((f.copy()).div(mass)).mult(dt)).add(velocity)).mult(damping);
-    return vel;
-  }
-  
-  //void display(color colorOFPlanet){
-  //  fill(colorOFPlanet);
-  //  ellipse(position.x, position.y, radius*2, radius*2);
-  //}
-
 }
 
 //==================Functions==================================
@@ -155,9 +149,15 @@ void setup() {
   device_origin.add(width/2, height/4 );
   
   //create planets
-  planets[0] = new Planet(d/2, 5, new PVector(-50,100), color(7,80,175));    //create Earth
-  planets[1] = new Planet((d/2)*0.532, 5*0.107, new PVector(50,100), color(196,69,27));    //create Mars
-  planets[2] = new Planet((d/2)*0.383, 5*0.0553, new PVector(75,100), color(219,209,206));    //create Mercury
+  planets[0] = new Planet((s/2)*0.383, m*0.0553, g*0.378, new PVector(-75,70), color(219,209,206));    //create Mercury
+  planets[1] = new Planet((s/2)*0.949, m*0.815, g*0.907, new PVector(-70,80), color(201,168,90));  //create Venus
+  planets[2] = new Planet((s/2), m, g, new PVector(-60,100), color(7,80,175));    //create Earth
+  planets[3] = new Planet((s/2)*0.532, m*0.107, g*0.377, new PVector(-30,130), color(196,69,27));    //create Mars
+  planets[4] = new Planet((s/2)*11.21, m*317.8, g*2.36, new PVector(0,200), color(239,226,196)); //create Jupiter
+  planets[5] = new Planet((s/2)*9.45, m*95.2, g*0.916, new PVector(70,200), color(247,236,178)); //create Saturn
+  planets[6] = new Planet((s/2)*4.01, m*14.5, g*0.889, new PVector(100, 130), color(209,243,249)); //create Uranus
+  planets[7] = new Planet((s/2)*3.88, m*17.1, g*1.12, new PVector(120, 100), color(77,112,183)); //create Neptune
+  planets[8] = new Planet((s/2)*0.186, m*0.0025, g*0.071, new PVector(150, 80), color(255,255,255)); //create Pluto
   
   createpantograph();
 }
@@ -170,7 +170,14 @@ void draw(){
   count = millis(); 
   scale(1,-1);
   translate(0,-height); 
- 
+ for(int i =0; i< planetno; i++){
+   drawHelper(i);
+ }
+    
+}
+
+//so that the handle can experience force from each planet
+void drawHelper(int i){
   if(haply_board.data_available()){
 
    /*** GET END-EFFECTOR POSITION (TASK SPACE)****/ 
@@ -181,12 +188,9 @@ void draw(){
             angles.y = haply_2DoF.encoders[1].get_angle();
             haply_2DoF.mechanisms.forwardKinematics(angles.array());
             pos_ee.set( haply_2DoF.mechanisms.get_coordinate());
-    
-            for(Planet planet: planets){
-              planet.update();
-              
-            }
 
+              planets[i].update();
+            
 }
 
   /******* ANIMATION TIMER ********/ 
@@ -201,8 +205,6 @@ void draw(){
   if((count - haptics_count) > 1){
     haply_2DoF.device_write_torques();
   }
-  
-  
 }
 
 /* Graphical and physics functions -----------------------------------------------------*/
@@ -243,6 +245,7 @@ void createpantograph(){
   for(int i=0; i<planetno; i++){
     planetshape[i] = createShape(ELLIPSE, device_origin.x, device_origin.y, 2*planets[i].radius, 2*planets[i].radius);
     planetshape[i].setFill(planets[i].colorOfPlanet);
+    noStroke();
   }
 
 
@@ -264,6 +267,7 @@ void update_animation(float th1, float th2, float x_E, float y_E){
   
   for(int i=0; i<planetno; i++){
     shape(planetshape[i], planets[i].temposition.x, planets[i].temposition.y);
+    
   }
 
 }

@@ -50,7 +50,7 @@ int             m_ball            = 5; //grams
 int             k_ball            = 2000; //grams/s^2
 float           pen_ball          = 0.0; // mm
 float           b_air             = .2; // grams/s
-PVector         f_gravity         = new PVector(0, -8000); // mm/s^2
+PVector         f_gravity         = new PVector(0, -1000); // mm/s^2
 
 
 // Initial Conditions
