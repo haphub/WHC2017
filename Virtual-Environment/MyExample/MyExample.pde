@@ -1,7 +1,6 @@
 import processing.serial.*;
 
 
-// Reference from HelloBall (may need to copy other files from HelloBall as well
 Device          haply_2DoF;
 byte            deviceID = 5;
 Board           haply_board;
@@ -19,11 +18,20 @@ int             l                 = 2*50;
 int             L                 = 2*70;
 int             d                 = 2*20;
 int             r_ee              = d/3;     //radius of handle
-int             s                 = 10;
-float           g                 = 9.8;
-int             m                 = 5;
+int             s                 = 10;      //size of planet
+float           g                 = 9.8;    //gravity of planet
+int             m                 = 5;      //mass of planet
 
 PVector          device_origin    = new PVector (0, 0) ; 
+
+//Text to be displayed
+String intro = "Hit one of the nine planets with the handle";
+String intro2 = "and feel their mass and gravity in scale";
+String displayed = "";
+PFont font;
+boolean display = true;
+int interval = 8000; 
+int time;
 
 //dynamics of planets
 long            oldTimer          = 0; 
@@ -132,7 +140,12 @@ void setup() {
   /*Setup for the graphic display window and drawing objects*/
   
   size(600, 400, P2D);
-  background(255);
+  font = createFont("arial", 20);
+  background(0);
+  displayed = intro;
+  time = millis();
+  textFont(font);
+  fill(255);
   frameRate(baseFrameRate);
    
   
@@ -167,12 +180,25 @@ void setup() {
  * @brief    Main draw function, updates frame at perscribed frame rate
  */
 void draw(){
-  count = millis(); 
-  scale(1,-1);
-  translate(0,-height); 
- for(int i =0; i< planetno; i++){
-   drawHelper(i);
- }
+  background(0);
+ 
+  if(display){
+   fill(255);
+   text(intro, width/2 - textWidth(displayed)/2, height/2);
+   text(intro2, width/2 - textWidth(displayed)/2, height/2 + 30);
+   if(millis() - time > interval){
+     display = false;
+   }
+  }else{
+  
+    count = millis(); 
+    scale(1,-1);
+    translate(0,-height); 
+    
+   for(int i =0; i< planetno; i++){
+     drawHelper(i);
+   }
+  }
     
 }
 
